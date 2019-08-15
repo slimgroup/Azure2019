@@ -1,0 +1,14 @@
+job_specifications:
+- id: gtpoc
+  auto_complete: true
+  shm_size: 256m
+  tasks:
+  - docker_image: vincent.azurecr.io/devito_centos_mpi:v0.1 # complete with your image
+    additional_docker_run_options:
+      - --privileged
+    multi_instance:
+      num_instances: pool_current_dedicated
+      mpi:
+        runtime: mpich
+        processes_per_node: 1
+    command: python3 /app/test_script.py  # your command here

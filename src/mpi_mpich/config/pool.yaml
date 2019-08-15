@@ -1,0 +1,18 @@
+pool_specification:
+  id: gtpoc9
+  vm_configuration:
+    platform_image:
+      publisher: Canonical
+      offer: UbuntuServer
+      sku: '18.04-LTS'
+      native: true
+  vm_count:
+    dedicated: 1
+    low_priority: 0
+  vm_size: STANDARD_H16
+  inter_node_communication_enabled: false
+  ssh:
+    username: shipyard
+    allow_docker_access: true
+  reboot_on_start_task_failed: false
+  block_until_all_global_resources_loaded: true
