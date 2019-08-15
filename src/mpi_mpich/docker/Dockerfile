@@ -47,8 +47,8 @@ ENV DEVITO_LOGGING="DEBUG"
 
 # Add application
 ADD ./devito_isotropic /app/devito_isotropic
-ADD ./test_script_no_mpi.py /app/test_script_no_mpi.py
-ADD ./bp_observed_data_1005.segy /app/bp_observed_data_1005.segy
+#ADD ./test_script_no_mpi.py /app/test_script_no_mpi.py
+#ADD ./bp_observed_data_1005.segy /app/bp_observed_data_1005.segy
 
 # set up sshd on port 23
 EXPOSE 23
