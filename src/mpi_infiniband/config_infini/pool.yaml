@@ -1,0 +1,26 @@
+pool_specification:
+  id: gtpoc1
+  vm_configuration:
+    platform_image:
+      publisher: OpenLogic
+      offer: CentOS-HPC
+      sku: '7.6'
+      # native: true
+  vm_count:
+    dedicated: 2
+    low_priority: 0
+  vm_size: STANDARD_HB60rs
+  inter_node_communication_enabled: true
+  ssh:
+    username: shipyard
+    allow_docker_access: true
+  remote_access_control:
+    starting_port: 49000
+    allow:
+      - 131.107.0.0/16
+      - 167.220.0.0/16
+      - 10.0.0.0/8
+    deny:
+      - '*'
+  reboot_on_start_task_failed: false
+  block_until_all_global_resources_loaded: true

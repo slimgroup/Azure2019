@@ -6,7 +6,7 @@ from scipy import interpolate
 from devito import Eq, Operator
 from azure.storage.blob import BlockBlobService, PublicAccess
 
-blob_service = BlockBlobService(account_name='xxxx', account_key='xxxx')
+blob_service = BlockBlobService(account_name='gatechsponsored', account_key='fHlppOUxjbINeTQDPpaLtUvJte/rnFUOtTPQ2tgJTMHwrpfAHQ9wYcz7Uiqjn177MpoIWqJxYVWjWL6bfkdeZw==')
 
 ####################################################################################################
 # array put and get

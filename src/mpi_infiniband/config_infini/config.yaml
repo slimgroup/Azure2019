@@ -1,0 +1,5 @@
+batch_shipyard:
+  storage_account_settings: southcentralus
+global_resources:
+  docker_images:
+    - vincent.azurecr.io/devito_centos_mpi:v0.1 # compete with your image name
