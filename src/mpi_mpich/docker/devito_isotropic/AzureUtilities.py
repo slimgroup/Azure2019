@@ -12,7 +12,9 @@ blob_service = BlockBlobService(account_name='gatechsponsored', account_key='fHl
 # array put and get
 
 def convert_to_string(t):
-    if len(t) == 2:
+    if len(t) == 1:
+        return str(t[0])
+    elif len(t) == 2:
         return str(t[0]) + 'S' + str(t[1])
     else:
         return str(t[0]) + 'S' + str(t[1]) + 'S' + str(t[2])
@@ -20,11 +22,15 @@ def convert_to_string(t):
 def convert_int_from_string(s):
     s_split = s.split('S')
     ndim = len(s_split)
-    n1 = int(s_split[0])
-    n2 = int(s_split[1])
-    if ndim==2:
+    if ndim==1:
+        n = int(s_split[0])
+    elif ndim==2:
+        n1 = int(s_split[0])
+        n2 = int(s_split[1])
         n = (n1, n2)
     else:
+        n1 = int(s_split[0])
+        n2 = int(s_split[1])
         n3 = int(s_split[2])
         n = (n1, n2, n3)
     return n

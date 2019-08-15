@@ -53,7 +53,7 @@ ndims = len(spacing)
 
 idx = 800   #shot[node_idx]
 print("Process shot no.: ", idx)
-dorig, sx, sz, gx, gz, tn, dt, nt = segy_read('/app/bp_observed_data_1005.segy')
+dorig, sx, sz, gx, gz, tn, dt, nt = segy_read('seismic/data/bp_observed_data_1005.segy')
 
 # Restrict models to receiver area + buffer (default is 500 m)
 m0, shape, origin = restrict_model_to_receiver_grid(sx, gx, m0, spacing, origin_full, buffer_size=5000)
