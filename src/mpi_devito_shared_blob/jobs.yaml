@@ -1,0 +1,21 @@
+job_specifications:
+- id: mpi
+  auto_complete: true
+  shared_data_volumes:
+  - azureblob_vol
+  tasks:
+  - docker_image: mloubout/azure_elastic:v2.0
+    environment_variables:
+      CC: gcc-8
+      OMP_NUM_THREADS: 16
+      DEVITO_LOGGING: DEBUG
+      OMP_PROC_BIND: 'TRUE'
+      DEVITO_ARCH: gnu
+      DEVITO_MPI: 1
+    multi_instance:
+      num_instances: pool_current_dedicated
+      mpi:
+        runtime: mpich
+        processes_per_node: 1
+    command: > 
+      python3 $AZ_BATCH_NODE_SHARED_DIR/script.py
