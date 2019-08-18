@@ -2,3 +2,4 @@
 *.segy
 *.dat
 id_*
+credentials.yaml
