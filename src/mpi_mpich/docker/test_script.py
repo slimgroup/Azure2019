@@ -3,6 +3,7 @@ import sys
 sys.path.insert(0, '/app/devito_isotropic')
 
 import numpy as np
+from argparse import ArgumentParser
 import psutil, os, gc, random, string, time, subprocess
 from PySource import RickerSource, Receiver
 from PyModel import Model
@@ -14,6 +15,25 @@ from scipy import ndimage
 from mpi4py import MPI
 from devito import configuration
 configuration['mpi'] = True
+
+# Read runtime arguments
+description = ("Compute gradient of BP model.")
+parser = ArgumentParser(description=description)
+parser.add_argument("--id",  dest='shot_id', default=1, type=int,
+                    help="Shot number")
+parser.add_argument("--modeldir",  dest='modeldir', default="", type=str,
+                    help="Path to model directory in blob")
+parser.add_argument("--datadir",  dest='datadir', default="", type=str,
+                    help="Path to data directory in blob")
+parser.add_argument("--gradientdir",  dest='gradientdir', default="", type=str,
+                    help="Path to partial gradient directory in blob")
+args = parser.parse_args()
+
+# Get inputs
+shot_id = args.shot_id
+modeldir = args.modeldir
+datadir = args.datadir
+gradientdir = args.gradientdir
 
 tstart = time.time()
 chars = string.ascii_uppercase + string.ascii_lowercase + string.digits
@@ -43,8 +63,11 @@ full_gradient_path = 'full_gradient/'
 gradient_name = 'test_gradient_1'
 
 # Fetch models from S3
-m0, origin, spacing = model_get(bucket, model_path + velocity_name)
-water = model_get(bucket, model_path + water_name)[0]
+#m0, origin, spacing = model_get(bucket, model_path + velocity_name)
+#water = model_get(bucket, model_path + water_name)[0]
+m0, origin, spacing = model_read(/app/)
+water = model_read()[0]
+
 shape = m0.shape
 ndims = len(spacing)
 
