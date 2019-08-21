@@ -20,22 +20,6 @@ from checkpoint import DevitoCheckpoint, CheckpointOperator
 from pyrevolve import Revolver
 from utils import freesurface
 
-def J_adjoint(model, src_coords, wavelet, rec_coords, recin, space_order=12,
-                t_sub_factor=20, h_sub_factor=2, checkpointing=False, free_surface=False,
-                n_checkpoints=None, maxmem=None, dt=None, isic=False):
-    if checkpointing:
-        F = forward_modeling(model, src_coords, wavelet, rec_coords, save=True, space_order=space_order,
-                             t_sub_factor=t_sub_factor, h_sub_factor=h_sub_factor, dt=dt, op_return=True,
-                             free_surface=free_surface)
-        grad = adjoint_born(model, rec_coords, recin, op_forward=F, space_order=space_order,
-                            is_residual=True, isic=isic, n_checkpoints=n_checkpoints, maxmem=maxmem,
-                            free_surface=free_surface)
-    else:
-        u0 = forward_modeling(model, src_coords, wavelet, None, save=True, space_order=space_order,
-                              t_sub_factor=t_sub_factor, h_sub_factor=h_sub_factor, dt=dt, free_surface=free_surface)
-        grad = adjoint_born(model, rec_coords, recin, u=u0, space_order=space_order, isic=isic, dt=dt, free_surface=free_surface)
-
-    return grad
 
 def acoustic_laplacian(v, rho):
     if rho is None:
@@ -49,21 +33,21 @@ def acoustic_laplacian(v, rho):
             Lap = 1 / rho * v.laplace
     return Lap, rho
 
-def forward_modeling(model, src_coords, wavelet, rec_coords, save=False, space_order=8,
+#def forward_modeling(model, src_coords, wavelet, rec_coords, save=False, space_order=8,
+#                     free_surface=False, op_return=False, u_return=False, dt=None, tsub_factor=1):
+def forward_modeling(model, geometry, save=False, space_order=8,
                      free_surface=False, op_return=False, u_return=False, dt=None, tsub_factor=1):
+
     clear_cache()
-    # If wavelet is file, read it
-    if isinstance(wavelet, str):
-        wavelet = np.load(wavelet)
 
     # Parameters
-    nt = wavelet.shape[0]
+    nt = geometry.src.shape[0]
     if dt is None:
         dt = model.critical_dt
     m, rho, damp = model.m, model.rho, model.damp
 
     # Create the forward wavefield
-    if save is False and rec_coords is not None:
+    if save is False:
         u = TimeFunction(name='u', grid=model.grid, time_order=2, space_order=space_order)
         eqsave = []
     elif save is True and tsub_factor > 1:
@@ -78,25 +62,15 @@ def forward_modeling(model, src_coords, wavelet, rec_coords, save=False, space_o
 
     # Set up PDE and rearrange
     ulaplace, rho = acoustic_laplacian(u, rho)
-    # H = symbols('H')
-    # eqn = m / rho * u.dt2 - H + damp * u.dt
     stencil = damp * ( 2.0 * u - damp * u.backward + dt**2 * rho / m * ulaplace)
 
-    # Input source is wavefield
-    if isinstance(wavelet, TimeFunction):
-        wf_src = TimeFunction(name='wf_src', grid=model.grid, time_order=2, space_order=space_order, save=nt)
-        wf_src._data = wavelet._data
-        eqn -= wf_src
-
     # Rearrange expression
-    # stencil = solve(eqn, u.forward)
     expression = [Eq(u.forward, stencil)]
 
     # Data is sampled at receiver locations
-    if rec_coords is not None:
-        rec = Receiver(name='rec', grid=model.grid, ntime=nt, coordinates=rec_coords)
-        rec_term = rec.interpolate(expr=u)
-        expression += rec_term
+    rec_modeled = geometry.rec
+    rec_term = rec_modeled.interpolate(expr=u)
+    expression += rec_term
 
     # Create operator and run
     if save:
@@ -108,12 +82,8 @@ def forward_modeling(model, src_coords, wavelet, rec_coords, save=False, space_o
         expression += freesurface(u, space_order//2, model.nbpml)
 
     # Source symbol with input wavelet
-    if src_coords is not None:
-        src = PointSource(name='src', grid=model.grid, ntime=nt, coordinates=src_coords)
-        if src.data.size != 0:
-            src.data[:] = wavelet[:]
-            src_term = src.inject(field=u.forward, expr=src.dt * rho * dt**2 / m)
-            expression += src_term
+    src_term = geometry.src.inject(field=u.forward, expr=geometry.src.dt * rho * dt**2 / m)
+    expression += src_term
 
     subs = model.spacing_map
     subs[u.grid.time_dim.spacing] = dt
@@ -122,15 +92,9 @@ def forward_modeling(model, src_coords, wavelet, rec_coords, save=False, space_o
         cf = op.cfunction
         summary = op.apply()
         if save is True and tsub_factor > 1:
-            if rec_coords is not None:
-                return rec.data, usave, summary
-            else:
-                return usave, summary
+            return rec_modeled, usave, summary
         else:
-            if rec_coords is None:
-                return u, summary
-            else:
-                return rec.data, u, summary
+            return rec_modeled, u, summary
     else:
         if u_return is False:
             return op
@@ -140,36 +104,25 @@ def forward_modeling(model, src_coords, wavelet, rec_coords, save=False, space_o
             else:
                 return op, u
 
-def adjoint_modeling(model, src_coords, rec_coords, rec_data, space_order=8, free_surface=False, dt=None):
+
+# def adjoint_modeling(model, src_coords, rec_coords, rec_data, space_order=8, free_surface=False, dt=None):
+def adjoint_modeling(model, geometry, space_order=8, free_surface=False, dt=None):
+
     clear_cache()
 
-    # If wavelet is file, read it
-    if isinstance(rec_data, str):
-        rec_data = np.load(rec_data)
-
     # Parameters
-    nt = rec_data.shape[0]
+    nt = geometry.rec.shape[0]
     if dt is None:
         dt = model.critical_dt
     m, rho, damp = model.m, model.rho, model.damp
 
     # Create the adjoint wavefield
-    if src_coords is not None:
-        v = TimeFunction(name="v", grid=model.grid, time_order=2, space_order=space_order)
-    else:
-        v = TimeFunction(name="v", grid=model.grid, time_order=2, space_order=space_order, save=nt)
+    v = TimeFunction(name="v", grid=model.grid, time_order=2, space_order=space_order)
 
     # Set up PDE and rearrange
     vlaplace, rho = acoustic_laplacian(v, rho)
 
-    # Input data is wavefield
-    full_q = 0
-    if isinstance(rec_data, TimeFunction):
-        wf_rec = TimeFunction(name='wf_rec', grid=model.grid, time_order=2, space_order=space_order, save=nt)
-        wf_rec._data = rec_data._data
-        full_q = wf_rec
-
-    stencil = damp * (2.0 * v - damp * v.forward + dt**2 * rho / m * (vlaplace + full_q))
+    stencil = damp * (2.0 * v - damp * v.forward + dt**2 * rho / m * vlaplace)
     expression = [Eq(v.backward, stencil)]
 
     # Free surface
@@ -177,36 +130,30 @@ def adjoint_modeling(model, src_coords, rec_coords, rec_data, space_order=8, fre
         expression += freesurface(v, space_order//2, model.nbpml, forward=False)
 
     # Adjoint source is injected at receiver locations
-    if rec_coords is not None:
-        rec = Receiver(name='rec', grid=model.grid, ntime=nt, coordinates=rec_coords)
-        if rec.data.size != 0:
-            rec.data[:] = rec_data[:]
-            adj_src = rec.inject(field=v.backward, expr=rec * rho * dt**2 / m)
-            expression += adj_src
+    adj_src = geometry.rec.inject(field=v.backward, expr=geometry.rec * rho * dt**2 / m)
+    expression += adj_src
 
     # Data is sampled at source locations
-    if src_coords is not None:
-        src = PointSource(name='src', grid=model.grid, ntime=nt, coordinates=src_coords)
-        adj_rec = src.interpolate(expr=v)
-        expression += adj_rec
-
-    # Create operator and run
+    src_modeled = geometry.src
+    adj_rec = src_modeled.interpolate(expr=v)
+    expression += adj_rec
 
     subs = model.spacing_map
     subs[v.grid.time_dim.spacing] = dt
     op = Operator(expression, subs=subs, dse='advanced', dle='advanced')
     cf = op.cfunction
     summary = op.apply()
-    if src_coords is None:
-        return v, summary
-    else:
-        return src.data, summary
 
-def forward_born(model, src_coords, wavelet, rec_coords, space_order=8, isic=False, dt=None, free_surface=False):
+    return src_modeled#, summary
+
+
+#def forward_born(model, src_coords, wavelet, rec_coords, space_order=8, isic=False, dt=None, free_surface=False):
+def forward_born(model, geometry, space_order=8, isic=False, dt=None, free_surface=False):
+
     clear_cache()
 
     # Parameters
-    nt = wavelet.shape[0]
+    nt = geometry.src.shape[0]
     if dt is None:
         dt = model.critical_dt
     m, rho, dm, damp = model.m, model.rho, model.dm, model.damp
@@ -241,15 +188,12 @@ def forward_born(model, src_coords, wavelet, rec_coords, space_order=8, isic=Fal
     expression = expression_u + expression_du
 
     # Define source symbol with wavelet
-    src = PointSource(name='src', grid=model.grid, ntime=nt, coordinates=src_coords)
-    if src.data.size != 0:
-        src.data[:] = wavelet[:]
-        src_term = src.inject(field=u.forward, expr=src * rho * dt**2 / m)
-        expression += src_term
+    src_term = geometry.src.inject(field=u.forward, expr=geometry.src * rho * dt**2 / m)
+    expression += src_term
 
     # Define receiver symbol
-    rec = Receiver(name='rec', grid=model.grid, ntime=nt, coordinates=rec_coords)
-    rec_term = rec.interpolate(expr=du)
+    rec_modeled = geometry.rec
+    rec_term = rec_modeled.interpolate(expr=du)
     expression += rec_term
 
     # Free surface
@@ -263,16 +207,20 @@ def forward_born(model, src_coords, wavelet, rec_coords, space_order=8, isic=Fal
     cf = op.cfunction
     summary = op.apply()
 
-    return rec, summary
+    return rec_modeled# summary
 
 
-def adjoint_born(model, rec_coords, rec_data, u=None, op_forward=None, is_residual=False,
-                 space_order=8, isic=False, dt=None, n_checkpoints=None, maxmem=None,
-                 free_surface=False, tsub_factor=1, checkpointing=False):
+#def adjoint_born(model, rec_coords, rec_data, u=None, op_forward=None, is_residual=False,
+#                 space_order=8, isic=False, dt=None, n_checkpoints=None, maxmem=None,
+#                 free_surface=False, tsub_factor=1, checkpointing=False):
+def adjoint_born(model, rec_g, u=None, op_forward=None, space_order=8, isic=False,
+                 dt=None, n_checkpoints=None, maxmem=None,free_surface=False, tsub_factor=1,
+                 checkpointing=False):
+
     clear_cache()
 
     # Parameters
-    nt = rec_data.shape[0]
+    nt = rec_g.shape[0]
     if dt is None:
         dt = model.critical_dt
     m, rho, damp = model.m, model.rho, model.damp
@@ -285,11 +233,8 @@ def adjoint_born(model, rec_coords, rec_data, u=None, op_forward=None, is_residu
     vlaplace, rho = acoustic_laplacian(v, rho)
     stencil = damp * (2.0 * v - damp * v.forward + dt**2 * rho / m * vlaplace)
     expression = [Eq(v.backward, stencil)]
+
     # Data at receiver locations as adjoint source
-    rec_g = Receiver(name='rec_g', grid=model.grid, ntime=nt, coordinates=rec_coords)
-    if op_forward is None:
-        if rec_g.data.size != 0:
-            rec_g.data[:] = rec_data[:]
     adj_src = rec_g.inject(field=v.backward, expr=rec_g * rho * dt**2 / m)
 
     # Gradient update
@@ -304,8 +249,6 @@ def adjoint_born(model, rec_coords, rec_data, u=None, op_forward=None, is_residu
                         first_derivative(v, dim=d, fd_order=space_order//2)
                         for d in u.space_dimensions])
         gradient_update = [Inc(gradient, - tsub_factor * dt * (u * v.dt2 * m + diff_u_v) / rho)]
-
-    # Create operator and run
 
     # Free surface
     if free_surface is True:
@@ -323,27 +266,7 @@ def adjoint_born(model, rec_coords, rec_data, u=None, op_forward=None, is_residu
     # Optimal checkpointing
     summary1 = None
     summary2 = None
-    if op_forward is not None and checkpointing is True:
-        rec = Receiver(name='rec', grid=model.grid, ntime=nt, coordinates=rec_coords)
-        cp = DevitoCheckpoint([u])
-        if maxmem is not None:
-            n_checkpoints = int(np.floor(maxmem * 10**6 / (cp.size * u.data.itemsize)))
-        wrap_fw = CheckpointOperator(op_forward, u=u, m=model.m, rec=rec)
-        wrap_rev = CheckpointOperator(op, u=u, v=v, m=model.m, rec_g=rec_g)
-
-        # Run forward
-        wrp = Revolver(cp, wrap_fw, wrap_rev, n_checkpoints, nt-2)
-        wrp.apply_forward()
-
-        # Residual and gradient
-        if is_residual is True:  # input data is already the residual
-            rec_g.data[:] = rec_data[:]
-        else:
-            rec_g.data[:] = rec.data[:] - rec_data[:]   # input is observed data
-            fval = .5*np.dot(rec_g.data[:].flatten(), rec_g.data[:].flatten()) * dt
-        wrp.apply_reverse()
-
-    elif op_forward is not None and checkpointing is False:
+    if op_forward is not None and checkpointing is False:
 
         # Compile first
         cf1 = op_forward.cfunction
@@ -351,159 +274,140 @@ def adjoint_born(model, rec_coords, rec_data, u=None, op_forward=None, is_residu
 
         # Run forward and adjoint
         summary1 = op_forward.apply()
-        if is_residual is True:
-            rec_g.data[:] = rec_data[:]
-        else:
-            rec = Receiver(name='rec', grid=model.grid, ntime=nt, coordinates=rec_coords)
-            rec_g.data[:] = rec.data[:] - rec_data[:]
-            fval = .5*np.dot(rec_g.data[:].flatten(), rec_g.data[:].flatten()) * dt
         summary2 = op.apply()
     else:
         cf = op.cfunction
         summary1 = op.apply()
     clear_cache()
 
-    if op_forward is not None and is_residual is not True:
-        if summary2 is not None:
-            return fval, gradient.data, summary1, summary2
-        elif summary1 is not None:
-            return fval, gradient.data, summary1
-        else:
-            return fval, gradient.data
-    else:
-        if summary2 is not None:
-            return gradient.data, summary1, summary2
-        elif summary1 is not None:
-            return gradient.data, summary1
-        else:
-            return gradient.data
+    return gradient
 
 ########################################################################################################################
 
-def forward_freq_modeling(model, src_coords, wavelet, rec_coords, freq, space_order=8, dt=None, factor=None, free_surface=False):
-    # Forward modeling with on-the-fly DFT of forward wavefields
-    clear_cache()
-
-    # Parameters
-    nt = wavelet.shape[0]
-    if dt is None:
-        dt = model.critical_dt
-    m, rho, damp = model.m, model.rho, model.damp
-
-    freq_dim = Dimension(name='freq_dim')
-    time = model.grid.time_dim
-    if factor is None:
-        factor = int(1 / (dt*4*np.max(freq)))
-        tsave = ConditionalDimension(name='tsave', parent=model.grid.time_dim, factor=factor)
-    if factor==1:
-        tsave = time
-    else:
-        tsave = ConditionalDimension(name='tsave', parent=model.grid.time_dim, factor=factor)
-    print("DFT subsampling factor: ", factor)
-
-    # Create wavefields
-    nfreq = freq.shape[0]
-    u = TimeFunction(name='u', grid=model.grid, time_order=2, space_order=space_order)
-    f = Function(name='f', dimensions=(freq_dim,), shape=(nfreq,))
-    f.data[:] = freq[:]
-    ufr = Function(name='ufr', dimensions=(freq_dim,) + u.indices[1:], shape=(nfreq,) + model.shape_domain)
-    ufi = Function(name='ufi', dimensions=(freq_dim,) + u.indices[1:], shape=(nfreq,) + model.shape_domain)
-
-    ulaplace, rho = acoustic_laplacian(u, rho)
-
-    # Set up PDE and rearrange
-    stencil = damp * (2.0 * u - damp * u.backward + dt**2 * rho / m * ulaplace)
-    expression = [Eq(u.forward, stencil)]
-    expression += [Eq(ufr, ufr + factor*u*cos(2*np.pi*f*tsave*factor*dt))]
-    expression += [Eq(ufi, ufi - factor*u*sin(2*np.pi*f*tsave*factor*dt))]
-
-    # Source symbol with input wavelet
-    src = PointSource(name='src', grid=model.grid, ntime=nt, coordinates=src_coords)
-    src.data[:] = wavelet[:]
-    src_term = src.inject(field=u.forward, expr=src * dt**2 / m)
-
-    # Data is sampled at receiver locations
-    rec = Receiver(name='rec', grid=model.grid, ntime=nt, coordinates=rec_coords)
-    rec_term = rec.interpolate(expr=u)
-
-    # Create operator and run
-
-    expression += src_term + rec_term
-    # Free surface
-    if free_surface is True:
-        expression += freesurface(u, space_order//2, model.nbpml)
-
-    subs = model.spacing_map
-    subs[u.grid.time_dim.spacing] = dt
-    op = Operator(expression, subs=subs, dse='advanced', dle='advanced')
-    cf = op.cfunction
-    op()
-
-    return rec.data, ufr, ufi
-
-
-def adjoint_freq_born(model, rec_coords, rec_data, freq, ufr, ufi, space_order=8, dt=None, isic=False, factor=None,
-                      free_surface=False):
-    clear_cache()
-
-    # Parameters
-    nt = rec_data.shape[0]
-    if dt is None:
-        dt = model.critical_dt
-    m, rho, damp = model.m, model.rho, model.damp
-    nfreq = ufr.shape[0]
-    time = model.grid.time_dim
-    if factor is None:
-        factor = int(1 / (dt*4*np.max(freq)))
-        tsave = ConditionalDimension(name='tsave', parent=model.grid.time_dim, factor=factor)
-    if factor==1:
-        tsave = time
-    else:
-        tsave = ConditionalDimension(name='tsave', parent=model.grid.time_dim, factor=factor)
-    dtf = factor * dt
-    ntf = factor / nt
-    print("DFT subsampling factor: ", factor)
-
-    # Create the forward and adjoint wavefield
-    v = TimeFunction(name='v', grid=model.grid, time_order=2, space_order=space_order)
-    f = Function(name='f', dimensions=(ufr.indices[0],), shape=(nfreq,))
-    f.data[:] = freq[:]
-    gradient = Function(name="gradient", grid=model.grid)
-    vlaplace, rho = acoustic_laplacian(v, rho)
-
-    # Set up PDE and rearrange
-    stencil = damp * (2.0 * v - damp * v.forward + dt**2 * rho / m * vlaplace)
-    expression = [Eq(v.backward, stencil)]
-
-    # Data at receiver locations as adjoint source
-    rec = Receiver(name='rec', grid=model.grid, ntime=nt, coordinates=rec_coords)
-    rec.data[:] = rec_data[:]
-    adj_src = rec.inject(field=v.backward, expr=rec * dt**2 / m)
-
-    # Gradient update
-    if isic is True:
-        if len(model.shape) == 2:
-            gradient_update = [Eq(gradient, gradient + (2*np.pi*f)**2*ntf*(ufr*cos(2*np.pi*f*tsave*dtf) - ufi*sin(2*np.pi*f*tsave*dtf))*v*model.m -
-                                                       (ufr.dx*cos(2*np.pi*f*tsave*dtf) - ufi.dx*sin(2*np.pi*f*tsave*dtf))*v.dx*ntf -
-                                                       (ufr.dy*cos(2*np.pi*f*tsave*dtf) - ufi.dy*sin(2*np.pi*f*tsave*dtf))*v.dy*ntf)]
-        else:
-            gradient_update = [Eq(gradient, gradient + (2*np.pi*f)**2*ntf*(ufr*cos(2*np.pi*f*tsave*dtf) - ufi*sin(2*np.pi*f*tsave*dtf))*v*model.m -
-                                                       (ufr.dx*cos(2*np.pi*f*tsave*dtf) - ufi.dx*sin(2*np.pi*f*tsave*dtf))*v.dx*ntf -
-                                                       (ufr.dy*cos(2*np.pi*f*tsave*dtf) - ufi.dy*sin(2*np.pi*f*tsave*dtf))*v.dy*ntf -
-                                                       (ufr.dz*cos(2*np.pi*f*tsave*dtf) - ufi.dz*sin(2*np.pi*f*tsave*dtf))*v.dz*ntf)]
-    else:
-        gradient_update = [Eq(gradient, gradient + (2*np.pi*f)**2/nt*(ufr*cos(2*np.pi*f*tsave*dtf) - ufi*sin(2*np.pi*f*tsave*dtf))*v)]
-
-    # Create operator and run
-
-    # Free surface
-    if free_surface is True:
-        expression += freesurface(v, space_order//2, model.nbpml, forward=False)
-    expression += adj_src + gradient_update
-    subs = model.spacing_map
-    subs[v.grid.time_dim.spacing] = dt
-    op = Operator(expression, subs=subs, dse='advanced', dle='advanced')
-    cf = op.cfunction
-    op()
-    clear_cache()
-    return gradient.data
+# def forward_freq_modeling(model, src_coords, wavelet, rec_coords, freq, space_order=8, dt=None, factor=None, free_surface=False):
+#     # Forward modeling with on-the-fly DFT of forward wavefields
+#     clear_cache()
+#
+#     # Parameters
+#     nt = wavelet.shape[0]
+#     if dt is None:
+#         dt = model.critical_dt
+#     m, rho, damp = model.m, model.rho, model.damp
+#
+#     freq_dim = Dimension(name='freq_dim')
+#     time = model.grid.time_dim
+#     if factor is None:
+#         factor = int(1 / (dt*4*np.max(freq)))
+#         tsave = ConditionalDimension(name='tsave', parent=model.grid.time_dim, factor=factor)
+#     if factor==1:
+#         tsave = time
+#     else:
+#         tsave = ConditionalDimension(name='tsave', parent=model.grid.time_dim, factor=factor)
+#     print("DFT subsampling factor: ", factor)
+#
+#     # Create wavefields
+#     nfreq = freq.shape[0]
+#     u = TimeFunction(name='u', grid=model.grid, time_order=2, space_order=space_order)
+#     f = Function(name='f', dimensions=(freq_dim,), shape=(nfreq,))
+#     f.data[:] = freq[:]
+#     ufr = Function(name='ufr', dimensions=(freq_dim,) + u.indices[1:], shape=(nfreq,) + model.shape_domain)
+#     ufi = Function(name='ufi', dimensions=(freq_dim,) + u.indices[1:], shape=(nfreq,) + model.shape_domain)
+#
+#     ulaplace, rho = acoustic_laplacian(u, rho)
+#
+#     # Set up PDE and rearrange
+#     stencil = damp * (2.0 * u - damp * u.backward + dt**2 * rho / m * ulaplace)
+#     expression = [Eq(u.forward, stencil)]
+#     expression += [Eq(ufr, ufr + factor*u*cos(2*np.pi*f*tsave*factor*dt))]
+#     expression += [Eq(ufi, ufi - factor*u*sin(2*np.pi*f*tsave*factor*dt))]
+#
+#     # Source symbol with input wavelet
+#     src = PointSource(name='src', grid=model.grid, ntime=nt, coordinates=src_coords)
+#     src.data[:] = wavelet[:]
+#     src_term = src.inject(field=u.forward, expr=src * dt**2 / m)
+#
+#     # Data is sampled at receiver locations
+#     rec = Receiver(name='rec', grid=model.grid, ntime=nt, coordinates=rec_coords)
+#     rec_term = rec.interpolate(expr=u)
+#
+#     # Create operator and run
+#
+#     expression += src_term + rec_term
+#     # Free surface
+#     if free_surface is True:
+#         expression += freesurface(u, space_order//2, model.nbpml)
+#
+#     subs = model.spacing_map
+#     subs[u.grid.time_dim.spacing] = dt
+#     op = Operator(expression, subs=subs, dse='advanced', dle='advanced')
+#     cf = op.cfunction
+#     op()
+#
+#     return rec.data, ufr, ufi
+#
+#
+# def adjoint_freq_born(model, rec_coords, rec_data, freq, ufr, ufi, space_order=8, dt=None, isic=False, factor=None,
+#                       free_surface=False):
+#     clear_cache()
+#
+#     # Parameters
+#     nt = rec_data.shape[0]
+#     if dt is None:
+#         dt = model.critical_dt
+#     m, rho, damp = model.m, model.rho, model.damp
+#     nfreq = ufr.shape[0]
+#     time = model.grid.time_dim
+#     if factor is None:
+#         factor = int(1 / (dt*4*np.max(freq)))
+#         tsave = ConditionalDimension(name='tsave', parent=model.grid.time_dim, factor=factor)
+#     if factor==1:
+#         tsave = time
+#     else:
+#         tsave = ConditionalDimension(name='tsave', parent=model.grid.time_dim, factor=factor)
+#     dtf = factor * dt
+#     ntf = factor / nt
+#     print("DFT subsampling factor: ", factor)
+#
+#     # Create the forward and adjoint wavefield
+#     v = TimeFunction(name='v', grid=model.grid, time_order=2, space_order=space_order)
+#     f = Function(name='f', dimensions=(ufr.indices[0],), shape=(nfreq,))
+#     f.data[:] = freq[:]
+#     gradient = Function(name="gradient", grid=model.grid)
+#     vlaplace, rho = acoustic_laplacian(v, rho)
+#
+#     # Set up PDE and rearrange
+#     stencil = damp * (2.0 * v - damp * v.forward + dt**2 * rho / m * vlaplace)
+#     expression = [Eq(v.backward, stencil)]
+#
+#     # Data at receiver locations as adjoint source
+#     rec = Receiver(name='rec', grid=model.grid, ntime=nt, coordinates=rec_coords)
+#     rec.data[:] = rec_data[:]
+#     adj_src = rec.inject(field=v.backward, expr=rec * dt**2 / m)
+#
+#     # Gradient update
+#     if isic is True:
+#         if len(model.shape) == 2:
+#             gradient_update = [Eq(gradient, gradient + (2*np.pi*f)**2*ntf*(ufr*cos(2*np.pi*f*tsave*dtf) - ufi*sin(2*np.pi*f*tsave*dtf))*v*model.m -
+#                                                        (ufr.dx*cos(2*np.pi*f*tsave*dtf) - ufi.dx*sin(2*np.pi*f*tsave*dtf))*v.dx*ntf -
+#                                                        (ufr.dy*cos(2*np.pi*f*tsave*dtf) - ufi.dy*sin(2*np.pi*f*tsave*dtf))*v.dy*ntf)]
+#         else:
+#             gradient_update = [Eq(gradient, gradient + (2*np.pi*f)**2*ntf*(ufr*cos(2*np.pi*f*tsave*dtf) - ufi*sin(2*np.pi*f*tsave*dtf))*v*model.m -
+#                                                        (ufr.dx*cos(2*np.pi*f*tsave*dtf) - ufi.dx*sin(2*np.pi*f*tsave*dtf))*v.dx*ntf -
+#                                                        (ufr.dy*cos(2*np.pi*f*tsave*dtf) - ufi.dy*sin(2*np.pi*f*tsave*dtf))*v.dy*ntf -
+#                                                        (ufr.dz*cos(2*np.pi*f*tsave*dtf) - ufi.dz*sin(2*np.pi*f*tsave*dtf))*v.dz*ntf)]
+#     else:
+#         gradient_update = [Eq(gradient, gradient + (2*np.pi*f)**2/nt*(ufr*cos(2*np.pi*f*tsave*dtf) - ufi*sin(2*np.pi*f*tsave*dtf))*v)]
+#
+#     # Create operator and run
+#
+#     # Free surface
+#     if free_surface is True:
+#         expression += freesurface(v, space_order//2, model.nbpml, forward=False)
+#     expression += adj_src + gradient_update
+#     subs = model.spacing_map
+#     subs[v.grid.time_dim.spacing] = dt
+#     op = Operator(expression, subs=subs, dse='advanced', dle='advanced')
+#     cf = op.cfunction
+#     op()
+#     clear_cache()
+#     return gradient.data
