@@ -103,7 +103,7 @@ dobs.data[:] = dorig
 
 # Predicted data
 if iteration > 1:
-    dpred, summary0 = forward_born(model, geometry.src_positions, geometry.src.data, geometry.rec_positions, save=False, space_order=space_order)
+    dpred, summary0 = forward_born(model, geometry.src_positions, geometry.src.data, geometry.rec_positions, space_order=space_order)
     # Residual and function value
     dpred = dpred - dobs
 else:
