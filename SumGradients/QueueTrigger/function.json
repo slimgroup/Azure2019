@@ -1,0 +1,20 @@
+{
+  "bindings": [
+    {
+      "queueName": "gradientqueuein",
+      "connection": "AzureWebJobsStorage",
+      "name": "queuemsg",
+      "type": "queueTrigger",
+      "direction": "in"
+    },
+    {
+      "queueName": "gradientqueuein",
+      "connection": "AzureWebJobsStorage",
+      "name": "msg",
+      "type": "queue",
+      "direction": "out"
+    }
+  ],
+  "disabled": false,
+  "scriptFile": "__init__.py"
+}
