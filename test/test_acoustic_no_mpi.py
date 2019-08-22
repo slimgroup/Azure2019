@@ -30,7 +30,7 @@ nrec = 101
 
 # Velocity
 v = np.empty(shape, dtype=np.float32)
-v[:, :, :755] = 1.5
+v[:, :, :55] = 1.5
 v[:, :, 55:] = 3.0
 v0 = ndimage.gaussian_filter(v, sigma=5)
 m = (1./v)**2
@@ -39,7 +39,7 @@ dm = m - m0
 
 # Set up model structures
 model = Model(shape=shape, origin=origin, spacing=spacing, vp=v, nbpml=30)
-model0 = Model(shape=shape, origin=origin, spacing=spacing, vp=v0, dm=dm)
+model0 = Model(shape=shape, origin=origin, spacing=spacing, vp=v0, dm=dm,nbpml=30)
 
 # Time axis
 t0 = 0.
@@ -64,14 +64,19 @@ rec_coordinates[:, 1] = np.linspace(0, model.domain_size[1], num=nrec)
 rec_coordinates[:, -1] = 20.
 
 geometry = AcquisitionGeometry(model, rec_coordinates, src_coordinates, t0=0.0, tn=tn, src_type='Ricker', f0=f0)
+geometry0 = AcquisitionGeometry(model0, rec_coordinates, src_coordinates, t0=0.0, tn=tn, src_type='Ricker', f0=f0)
 
 # Nonlinear modeling
-dobs, u, summary1 = forward_modeling(model, geometry, save=False, op_return=False)
-qad = adjoint_modeling(model, geometry)
+dobs = forward_modeling(model, geometry, save=False, op_return=False)[0]
+dpred = forward_modeling(model0, geometry0, save=False, op_return=False)[0]
+
+dpred.data[:] = dpred.data[:] - dobs.data[:]   # residual
+#qad = adjoint_modeling(model, geometry)
 
 # Linearized modeling
-dlin = forward_born(model, geometry, isic=False)
+#dlin = forward_born(model, geometry, isic=False)
 
 # Gradient
-opF, u0 = forward_modeling(model, geometry, save=True, u_return=True, op_return=True, tsub_factor=2)
-g = adjoint_born(model, dlin, u=u0, op_forward=opF, tsub_factor=2)
+opF, u0 = forward_modeling(model0, geometry0, save=True, u_return=True, op_return=True, tsub_factor=2)
+g = adjoint_born(model0, dpred, u=u0, op_forward=opF, tsub_factor=2)
+plt.imshow(np.transpose(g.data), vmin=-2e-1, vmax=2e-1); plt.show()

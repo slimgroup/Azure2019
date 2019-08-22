@@ -26,19 +26,26 @@ subsampling_factor=4
 print("Run test with numcores: ", num_cores, " and omp places: ", omp_places)
 
 # Model
-shape = (120, 120, 120)
-spacing = (10, 10, 10)
-origin = (0., 0., 0.)
+shape = (120, 120)#, 120)
+spacing = (10, 10)#, 10)
+origin = (0., 0.)#, 0.)
 nrec = 101
 
 # Velocity
 v = np.empty(shape, dtype=np.float32)
-v[:, :, :45] = 1.5
-v[:, :, 45:] = 3.0
+#v[:, :, :55] = 1.5
+#v[:, :, 55:] = 3.0
+v[:, :55] = 1.5
+v[:, 55:] = 3.0
 v0 = ndimage.gaussian_filter(v, sigma=5)
+m = (1./v)**2
+m0 = (1./v0)**2
+dm = m - m0
 
 # Set up model structures
 model = Model(shape=shape, origin=origin, spacing=spacing, vp=v, nbpml=30)
+model0 = Model(shape=shape, origin=origin, spacing=spacing, vp=v0, dm=dm,nbpml=30)
+
 if configuration['mpi'] is True:
     comm = model.grid.distributor.comm
     size = comm.Get_size()
@@ -46,11 +53,12 @@ if configuration['mpi'] is True:
 
 # Time axis
 t0 = 0.
-tn = 600.
+tn = 200.
 num_wavefields = int(tn/4)
-mem = ((model.shape[0] + 2*model.nbpml) * (model.shape[1] + 2*model.nbpml) * (model.shape[2] + 2*model.nbpml) *num_wavefields/subsampling_factor * 8)/1024**3
+#mem = ((model.shape[0] + 2*model.nbpml) * (model.shape[1] + 2*model.nbpml) * (model.shape[2] + 2*model.nbpml) *num_wavefields/subsampling_factor * 8)/1024**3
+mem = ((model.shape[0] + 2*model.nbpml) * (model.shape[1] + 2*model.nbpml) *num_wavefields/subsampling_factor * 8)/1024**3
 
-print("No. of computational time steps: ", tn/model.critical_dt)
+print("No. of computational time steps: ", int(tn/model.critical_dt))
 print("No. of time samples at 4 ms: ", num_wavefields)
 print("Memory required: ", mem)
 
@@ -60,26 +68,52 @@ src_coordinates = np.empty((1, len(spacing)))
 src_coordinates[0, :] = np.array(model.domain_size) * 0.5
 src_coordinates[0,-1] = 20.
 
+
 # Receiver for observed data
 rec_coordinates = np.empty((nrec, len(spacing)))
 rec_coordinates[:, 0] = np.linspace(0, model.domain_size[0], num=nrec)
 rec_coordinates[:, 1] = np.linspace(0, model.domain_size[1], num=nrec)
 rec_coordinates[:, -1] = 20.
 
-geometry = AcquisitionGeometry(model, rec_coordinates, src_coordinates,
-                               t0=0.0, tn=tn, src_type='Ricker', f0=f0)
+geometry = AcquisitionGeometry(model, rec_coordinates, src_coordinates, t0=0.0, tn=tn, src_type='Ricker', f0=f0)
+geometry0 = AcquisitionGeometry(model0, rec_coordinates, src_coordinates, t0=0.0, tn=tn, src_type='Ricker', f0=f0)
 
 # Nonlinear modeling
-dobs, u, summary1 = forward_modeling(model, geometry, save=False, op_return=False)
-#qad = adjoint_modeling(model, geometry)
+dobs = forward_modeling(model, geometry, save=False, op_return=False)[0]
+dpred = forward_modeling(model0, geometry0, save=False, op_return=False)[0]
+print("dobs: ", dobs.shape)
 
 # Linearized modeling
-dlin = forward_born(model, geometry, isic=False)
-print("shape dlin: ", dlin.shape)
-
-r1 = sub_rec(dobs, dobs)
-r2 = sub_rec(dobs, dlin)
+#dpred = forward_born(model0, geometry0, isic=False)
+print("dpred: ", dpred.shape)
+sub_rec(dpred, dobs)
 
 # Gradient
-#opF, u0 = forward_modeling(model, geometry, save=True, u_return=True, op_return=True, tsub_factor=4)
-#g = adjoint_born(model, dlin, u=u0, op_forward=opF, tsub_factor=4)
+opF, u0 = forward_modeling(model0, geometry0, save=True, u_return=True, op_return=True, tsub_factor=8)
+g = adjoint_born(model0, dpred, u=u0, op_forward=opF, tsub_factor=8)
+print("G shape: ", g.shape, " from ", rank, " of ", size)
+
+if rank > 0:
+    # Send result to master
+    print("worker send gradient")
+    comm.send(model.m.local_indices, dest=0, tag=10)
+    comm.send(g, dest=0, tag=11)
+
+else:   # Master
+    # Initialize full array
+    gfull = np.empty(shape=model.m.shape_global, dtype='float32')
+    gfull[model.m.local_indices] = g
+
+    print("hello from master")
+    # Collect gradients
+    for j in range(1, size):
+        print("master collect from ", j)
+        local_indices = comm.recv(source=j, tag=10)
+        glocal = comm.recv(source=j, tag=11)
+        gfull[local_indices] = glocal
+
+    # Remove pml and extent back to full size
+    gfull = gfull[model.nbpml:-model.nbpml, model.nbpml:-model.nbpml]  # remove padding
+    gfull = np.reshape(gfull, -1, order='F')
+    print("shape gfull: ", gfull.shape)
+    print("norm(gfull): ", np.linalg.norm(gfull))
