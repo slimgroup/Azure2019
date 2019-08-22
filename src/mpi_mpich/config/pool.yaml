@@ -1,5 +1,5 @@
 pool_specification:
-  id: gtpool10
+  id: gtpool1
   vm_configuration:
     platform_image:
       publisher: Canonical
@@ -7,10 +7,10 @@ pool_specification:
       sku: '18.04-LTS'
       native: true
   vm_count:
-    dedicated: 1
+    dedicated: 2
     low_priority: 0
   vm_size: STANDARD_H16
-  inter_node_communication_enabled: false
+  inter_node_communication_enabled: true
   ssh:
     username: shipyard
     allow_docker_access: true

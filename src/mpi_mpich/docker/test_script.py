@@ -17,24 +17,14 @@ from devito import configuration
 configuration['mpi'] = True
 
 # Read runtime arguments
-description = ("Compute gradient of BP model.")
-parser = ArgumentParser(description=description)
-parser.add_argument("--id",  dest='shot_id', default=1, type=int,
-                    help="Shot number")
-parser.add_argument("--modeldir",  dest='modeldir', default="", type=str,
-                    help="Path to model directory in blob")
-parser.add_argument("--datadir",  dest='datadir', default="", type=str,
-                    help="Path to data directory in blob")
-parser.add_argument("--gradientdir",  dest='gradientdir', default="", type=str,
-                    help="Path to partial gradient directory in blob")
-args = parser.parse_args()
+if len(sys.argv) > 1:
+    shot_id = int(sys.argv[1])
 
-# Get inputs
-shot_id = args.shot_id
-modeldir = args.modeldir
-datadir = args.datadir
-gradientdir = args.gradientdir
+modeldir = os.environ["MODEL_PATH"]
+datadir = os.environ["DATA_PATH"]
+gradientdir = os.environ["GRADIENT_PATH"]
 
+# Start timer
 tstart = time.time()
 chars = string.ascii_uppercase + string.ascii_lowercase + string.digits
 
@@ -94,7 +84,6 @@ size = comm.Get_size()
 rank = comm.Get_rank()
 print("Shape: ", model.shape)
 
-
 # Time axis
 t0 = 0.
 dt_comp = model.critical_dt
@@ -117,15 +106,17 @@ geometry = AcquisitionGeometry(model, rec_coordinates, src_coordinates, t0=0.0, 
 
 # Resample input data to computational grid
 dorig = resample(dorig, t0, tn, nt, nt_comp)
-dobs = Receiver(name='rec_t', grid=model.grid, ntime=nt_comp, coordinates=rec_coordinates)
-dobs.data[:] = dorig
+geometry.rec.data[:] = dorig
+
+#dobs = Receiver(name='rec_t', grid=model.grid, ntime=nt_comp, coordinates=rec_coordinates)
+#dobs.data[:] = dorig
 
 # Predicted data
 if iteration > 1:
-    dpred = forward_born(model, geometry.src_positions, geometry.src.data, geometry.rec_positions)
+    dpred = forward_born(model, geometry)
     sub_rec(dpred, dobs)
 else:
-    dpred = Receiver(name='rec', grid=model.grid, ntime=nt_comp, coordinates=rec_coordinates)
+    #dpred = Receiver(name='rec', grid=model.grid, ntime=nt_comp, coordinates=rec_coordinates)
     dpred.data[:] = -dorig
 
 # Function value
@@ -134,8 +125,8 @@ print("fval, dpred.shape, dobs.shape: ", fval, dpred.shape, dobs.shape)
 
 # Wavefields in memory
 t1 = time.time()
-opF, u0 = forward_modeling(model, geometry.src_positions, geometry.src.data, geometry.rec_positions, save=True, u_return=True, op_return=True, tsub_factor=16)
-g, summary1, summary2 = adjoint_born(model, geometry.rec_positions, dpred.data, u=u0, is_residual=True, op_forward=opF, tsub_factor=16)
+opF, u0 = forward_modeling(model, geometry, save=True, u_return=True, op_return=True, tsub_factor=16)
+g, summary1, summary2 = adjoint_born(model, dpred, u=u0, is_residual=True, op_forward=opF, tsub_factor=16)
 t2 = time.time()
 print("Save in memory. Time [s]: ", t2 - t1)
 

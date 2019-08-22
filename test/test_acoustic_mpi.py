@@ -7,7 +7,7 @@ from PyModel import Model
 from utils import AcquisitionGeometry
 from JAcoustic_codegen import forward_modeling, adjoint_modeling, forward_born, adjoint_born
 import matplotlib.pyplot as plt
-from AzureUtilities import segy_write, resample, array_put
+from AzureUtilities import segy_write, resample, array_put, sub_rec
 from mpi4py import MPI
 from devito import configuration
 configuration['mpi'] = True
@@ -46,7 +46,7 @@ if configuration['mpi'] is True:
 
 # Time axis
 t0 = 0.
-tn = 1200.
+tn = 600.
 num_wavefields = int(tn/4)
 mem = ((model.shape[0] + 2*model.nbpml) * (model.shape[1] + 2*model.nbpml) * (model.shape[2] + 2*model.nbpml) *num_wavefields/subsampling_factor * 8)/1024**3
 
@@ -71,12 +71,15 @@ geometry = AcquisitionGeometry(model, rec_coordinates, src_coordinates,
 
 # Nonlinear modeling
 dobs, u, summary1 = forward_modeling(model, geometry, save=False, op_return=False)
-qad = adjoint_modeling(model, geometry)
+#qad = adjoint_modeling(model, geometry)
 
 # Linearized modeling
 dlin = forward_born(model, geometry, isic=False)
 print("shape dlin: ", dlin.shape)
 
+r1 = sub_rec(dobs, dobs)
+r2 = sub_rec(dobs, dlin)
+
 # Gradient
-opF, u0 = forward_modeling(model, geometry, save=True, u_return=True, op_return=True, tsub_factor=4)
-g = adjoint_born(model, dlin, u=u0, op_forward=opF, tsub_factor=4)
+#opF, u0 = forward_modeling(model, geometry, save=True, u_return=True, op_return=True, tsub_factor=4)
+#g = adjoint_born(model, dlin, u=u0, op_forward=opF, tsub_factor=4)
