@@ -1,23 +1,27 @@
 job_specifications:
-- id: gtjob1
+- id: gtjob33
   auto_complete: true
-  environment_variables:
-    OMP_NUM_THREADS: 16
-    MODEL_PATH:
-    DATA_PATH:
-    GRADIENT_PATH:
+  shared_data_volumes:
+  - azureblob_vol
   tasks:
-  - docker_image: slimcontainers.azurecr.io/azure_devito_mpich:v0.13
-    additional_docker_run_options:
-    - --privileged
-    input_data:
-      azure_storage:
-      - storage_account_settings: mystorageaccount
-        remote_path: seismic
-        local_path: $AZ_BATCH_TASK_WORKING_DIR/seismic
+  - docker_image: slimcontainers.azurecr.io/azure_devito_mpich:v0.14
+    environment_variables:
+      OMP_NUM_THREADS: 16
+      MODEL_PATH: seismic/models/
+      DATA_PATH: seismic/data/
+      GRADIENT_PATH: seismic/partial_gradients/
+    # additional_docker_run_options:
+    # - --privileged
     multi_instance:
       num_instances: pool_current_dedicated
       mpi:
         runtime: mpich
         processes_per_node: 1
-    command: python3 seismic/scripts/application.py
+    task_factory:
+      random:
+        generate: 1
+        integer:
+          start: 1
+          step: 1
+          stop: 1348
+    command: ls -l $AZ_BATCH_NODE_SHARED_DIR/seismic

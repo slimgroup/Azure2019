@@ -1,5 +1,5 @@
 pool_specification:
-  id: gtpool1
+  id: gtpool2
   vm_configuration:
     platform_image:
       publisher: Canonical

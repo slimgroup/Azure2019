@@ -285,7 +285,6 @@ def add_rec(d1, d2):
 
 def sub_rec(d1, d2):
     eq = Eq(d1, d1 - d2)
-    #op = Operator([eq],subs={d2.indices[-1]: d1.indices[-1]})
     op = Operator([eq],subs={i2: i1 for i1, i2 in zip(d1.indices, d2.indices)})
     op()
     return d1

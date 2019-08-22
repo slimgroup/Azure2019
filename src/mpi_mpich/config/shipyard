@@ -1,3 +1,17 @@
 #!/usr/bin/env bash
 
-SHIPYARD_CONFIGDIR=$PWD ~/batch-shipyard/shipyard $*
+set -e
+set -f
+
+BATCH_SHIPYARD_ROOT_DIR=/home/philipp/batch-shipyard
+VENV_NAME=.shipyard
+
+if [ -z $BATCH_SHIPYARD_ROOT_DIR ]; then
+    echo Batch Shipyard root directory not set.
+    echo Please rerun the install.sh script.
+    exit 1
+fi
+
+source activate $VENV_NAME
+python3 $BATCH_SHIPYARD_ROOT_DIR/shipyard.py $*
+source deactivate $VENV_NAME

@@ -8,7 +8,7 @@ import psutil, os, gc, random, string, time, subprocess
 from PySource import RickerSource, Receiver
 from PyModel import Model
 from utils import AcquisitionGeometry
-from JAcoustic_codegen import forward_modeling, adjoint_born, forward_born, forward_freq_modeling, adjoint_freq_born
+from JAcoustic_codegen import forward_modeling, adjoint_born, forward_born
 from AzureUtilities import *
 from devito.builtins import norm
 from scipy import ndimage
@@ -19,6 +19,8 @@ configuration['mpi'] = True
 # Read runtime arguments
 if len(sys.argv) > 1:
     shot_id = int(sys.argv[1])
+
+print("Source index: ", shot_id)
 
 modeldir = os.environ["MODEL_PATH"]
 datadir = os.environ["DATA_PATH"]
@@ -55,8 +57,8 @@ gradient_name = 'test_gradient_1'
 # Fetch models from S3
 #m0, origin, spacing = model_get(bucket, model_path + velocity_name)
 #water = model_get(bucket, model_path + water_name)[0]
-m0, origin, spacing = model_read(/app/)
-water = model_read()[0]
+m0, origin, spacing = model_read('seismic/models/velocity_model.h5')
+water = model_read('seismic/models/water_bottom.h5')[0]
 
 shape = m0.shape
 ndims = len(spacing)
@@ -64,7 +66,7 @@ ndims = len(spacing)
 # Fetch observed data
 idx = 1005   #random.randint(1, num_shots)  # fix to certain bsize for constant?
 print("Process shot no.: ", idx)
-dorig, sx, sz, gx, gz, tn, dt, nt = segy_read('/app/bp_observed_data_1005.segy')
+dorig, sx, sz, gx, gz, tn, dt, nt = segy_read('seismic/data/bp_observed_data_1005.segy')
 
 # Load previous iterations
 if iteration == 1:
@@ -108,15 +110,15 @@ geometry = AcquisitionGeometry(model, rec_coordinates, src_coordinates, t0=0.0, 
 dorig = resample(dorig, t0, tn, nt, nt_comp)
 geometry.rec.data[:] = dorig
 
-#dobs = Receiver(name='rec_t', grid=model.grid, ntime=nt_comp, coordinates=rec_coordinates)
-#dobs.data[:] = dorig
+dobs = Receiver(name='rec_t', grid=model.grid, ntime=nt_comp, coordinates=rec_coordinates)
+dobs.data[:] = dorig
 
 # Predicted data
 if iteration > 1:
     dpred = forward_born(model, geometry)
     sub_rec(dpred, dobs)
 else:
-    #dpred = Receiver(name='rec', grid=model.grid, ntime=nt_comp, coordinates=rec_coordinates)
+    dpred = Receiver(name='rec', grid=model.grid, ntime=nt_comp, coordinates=rec_coordinates)
     dpred.data[:] = -dorig
 
 # Function value
@@ -190,5 +192,6 @@ for key in summary2:
     t_kernel += summary2[key].time
 
 timings = np.array([t_kernel, t_devito, t_script], dtype='float32')
-filename = 'timings/mpi_scaling_nodes_' + str(size)
-array_put(timings, bucket, filename)
+print("Timings: ", timings)
+#filename = 'timings/mpi_scaling_nodes_' + str(size)
+#array_put(timings, bucket, filename)
