@@ -92,9 +92,9 @@ def forward_modeling(model, geometry, save=False, space_order=8,
         cf = op.cfunction
         summary = op.apply()
         if save is True and tsub_factor > 1:
-            return rec_modeled, usave, summary
+            return rec_modeled, usave#, summary
         else:
-            return rec_modeled, u, summary
+            return rec_modeled, u#, summary
     else:
         if u_return is False:
             return op
