@@ -89,7 +89,6 @@ def extract_message(queuemsg):
 
 def extract_parameters(msg):
     msg_list = msg.split('&')
-    #print('No of items in list: ', len(msg_list))
 
     # Extract parameters
     container = msg_list[0]
@@ -111,6 +110,34 @@ def extract_parameters(msg):
     #return bucket, partial_path, full_path, grad_name, idx, iteration, count, batchsize, \
     #    chunk, queue_name, variable_path, variable_name, step_length, step_scaling
 
+
+def get_random_name(length):
+    return ''.join(random.choice(string.ascii_lowercase) for i in range(length))
+
+
+def get_multipart_file_params(container, blob_name):
+
+    meta = blob_service.get_blob_properties(container, blob_name)
+    num_bytes = meta.properties.content_length
+    min_bytes = 128*1024**2   # minimum number of bytes for first object in multi-part object
+    desired_part_size = 512 * 1024**2    # want part size of 512 MB
+
+    # Determine number or parts and size of final part
+    if num_bytes <= min_bytes or num_bytes <= desired_part_size:
+        num_parts = 1
+        residual_bytes = num_bytes
+    else:
+        num_parts = int(num_bytes/desired_part_size)
+        if num_bytes % desired_part_size > 0:
+            num_parts += 1
+            residual_bytes = num_bytes % desired_part_size
+        else:
+            residual_bytes = None
+    return num_parts, desired_part_size, residual_bytes, num_bytes
+
+
+
+
 ########################################################################################################################
 
 
@@ -122,28 +149,55 @@ def main(queuemsg: func.QueueMessage, msg: func.Out[func.QueueMessage]):
 
     if count < batchsize:
         try:
+
+            # Get second message
             msg2_b64 = queue_service.get_messages('gradientqueuein', visibility_timeout=10, num_messages=1)
             print('Found ', len(msg2_b64), ' extra message(s).')
             msg2 = base64.b64decode(msg2_b64[0].content).decode()
             queue_service.delete_message('gradientqueuein', msg2_b64[0].id, msg2_b64[0].pop_receipt)
 
-            # Load gradient
+            # Get gradient parameters
             container1, partial_path1, grad_name1, idx1, count1, batchsize1 = extract_parameters(msg1)
             container2, partial_path2, grad_name2, idx2, count2, batchsize2 = extract_parameters(msg2)
 
-            # Sum gradients
-            g1 = array_get(container1, partial_path1 + grad_name1 + idx1)
-            g2 = array_get(container2, partial_path2 + grad_name2 + idx2)
-            array_put(g1 + g2, container1, partial_path1 + grad_name1 + str(3))
+            # New block blob gradient
+            get_multipart_file_params(container1, partial_path1 + grad_name1 + idx1)
+            idx3 = get_random_name(16)
+            blob_name = partial_path2 + grad_name2 + idx3
+
+            # Loop over blocks
+            byte_count = 0
+            blocks = []
+            for part in range(num_parts):
+
+                # Get byte range
+                byte_start = byte_count  # byte start
+                if residual_bytes is not None and part == (num_parts-1):
+                    byte_end = byte_count + residual_bytes - 1
+                else:
+                    byte_end = byte_count + desired_part_size - 1 # read until end of blob
+
+                # Get current gradients and sum
+                g = array_get(container1, partial_path1 + grad_name1 + idx1, start_range=byte_start, end_range=byte_end)
+
+                g += array_get(container2, partial_path2 + grad_name2 + idx2, start_range=byte_start, end_range=byte_end)
+
+                # Write back to blob storage
+                block_id = get_random_name(32)
+                blob_service.put_block(container1, blob_name, g.tostring(), block_id)
+                blocks.append(BlobBlock(id=block_id))
+
+            # Finalize block blob and send message to queue
+            blob_service.put_block_list(container, blob_name, blocks)
 
             # Out message
-            msg_out = 'seismic&partial_gradients/&test_grad_&3&2&2'
+            msg_out = container1 + '&' + partial_path2 + '&' + str(idx3) + '&' + str(count1 + count2) + '&' + str(batchsize1)
+            print('Out message: ', msg_out, '\n')
             msg.set(msg_out)
 
         except:
             print('No other messages found. Return message to queue.')
             #time.sleep(2)
             msg.set(msg1)
-
     else:
-        print("Done with gradient reduction.\n")
+        print("Update variable and done with reduction.\n")
