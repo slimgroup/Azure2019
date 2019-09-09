@@ -1,14 +1,25 @@
 job_specifications:
-- id: gtpoc
+- id: test-tti-multinode
   auto_complete: true
-  shm_size: 256m
+  shared_data_volumes:
+    - azureblob_vol
   tasks:
-  - docker_image: vincent.azurecr.io/devito_centos_mpi:v0.1 # complete with your image
+  - docker_image: slimcontainers.azurecr.io/devito:tti
     additional_docker_run_options:
       - --privileged
+    environment_variables:
+      DEVITO_ARCH: intel
+      OMP_NUM_THREADS: 8
+      OMP_PROC_BIND: 'close'
+      DEVITO_OPENMP: 1
+      OMP_PLACES: 'cores'
+      DEVITO_LOGGING: 'DEBUG'
+      DEVITO_MPI: 1
     multi_instance:
       num_instances: pool_current_dedicated
+      pre_execution_command: source /opt/intel2019/bin/compilervars.sh intel64
       mpi:
-        runtime: mpich
+        runtime: intelmpi
         processes_per_node: 1
-    command: python3 /app/test_script.py  # your command here
+    command: python3 $AZ_BATCH_NODE_SHARED_DIR/seismic/scripts/app.py
+             --id 123

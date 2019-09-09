@@ -1,18 +1,11 @@
 {
   "bindings": [
     {
-      "queueName": "gradientqueue",
+      "queueName": "iterationqueue",
       "connection": "AzureWebJobsStorage",
       "name": "queuemsg",
       "type": "queueTrigger",
       "direction": "in"
-    },
-    {
-      "queueName": "gradientqueue",
-      "connection": "AzureWebJobsStorage",
-      "name": "msg",
-      "type": "queue",
-      "direction": "out"
     }
   ],
   "disabled": false,

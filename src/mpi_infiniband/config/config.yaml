@@ -1,5 +1,15 @@
 batch_shipyard:
-  storage_account_settings: southcentralus
+  storage_account_settings: mystorageaccount
 global_resources:
   docker_images:
-    - vincent.azurecr.io/devito_centos_mpi:v0.1 # compete with your image name
+    - slimcontainers.azurecr.io/devito:tti
+  volumes:
+    shared_data_volumes:
+      azureblob_vol:
+        volume_driver: azureblob
+        storage_account_settings: mystorageaccount
+        azure_blob_container_name: seismic
+        container_path: $AZ_BATCH_NODE_SHARED_DIR/seismic
+        bind_options: rw
+        mount_options:
+          - --file-cache-timeout-in-seconds=0
