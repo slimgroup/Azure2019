@@ -405,3 +405,45 @@ def get_chunk_size(g_size, num_chunks):
         for j in range(num_residuals):
             chunk_size[j] += 1
     return chunk_size
+
+
+def timer(start,end):
+    hours, rem = divmod(end-start, 3600)
+    minutes, seconds = divmod(rem, 60)
+    return int(hours), int(minutes), int(seconds)
+
+
+def process_summaries(summary):
+    kernel = 0
+    gflopss = 0
+    gpointss = 0
+    oi = 0
+    ops = 0
+    if type(summary) is not list:
+        summary = [summary]
+    for item in summary:
+        for key in item:
+            kernel += item[key].time
+            kernel += item[key].gflopss
+            kernel += item[key].gpointss
+            kernel += item[key].oi
+            kernel += item[key].ops
+    return kernel, gflopss, gpointss, oi, ops
+
+####################################################################################################
+# Filtering
+
+from scipy import interpolate
+from scipy.signal import butter, sosfilt
+
+def butter_bandpass(lowcut, highcut, fs, order=5):
+        nyq = 0.5 * fs
+        low = lowcut / nyq
+        high = highcut / nyq
+        sos = butter(order, [low, high], analog=False, btype='band', output='sos')
+        return sos
+
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+        sos = butter_bandpass(lowcut, highcut, fs, order=order)
+        y = sosfilt(sos, data)
+        return y
