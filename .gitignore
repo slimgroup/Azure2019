@@ -3,3 +3,8 @@
 *.dat
 id_*
 credentials.yaml
+forward.py
+gradient.py
+kernels.py
+rotated_fd.py
+tti_propagators.py
