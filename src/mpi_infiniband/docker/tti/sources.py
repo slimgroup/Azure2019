@@ -218,7 +218,7 @@ class WaveletSource(PointSource):
             obj = PointSource.__new__(cls, npoint=npoint, **kwargs)
             obj.f0 = kwargs.get('f0')
             for p in range(npoint):
-                obj.data[:, p] = np.random.randn()*obj.wavelet(obj.f0, obj.time_values)
+                obj.data[:, p] = obj.wavelet(obj.f0, obj.time_values)
         return obj
 
     def __init__(self, *args, **kwargs):

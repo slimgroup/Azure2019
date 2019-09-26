@@ -3,8 +3,14 @@
 *.dat
 id_*
 credentials.yaml
+born.py
 forward.py
 gradient.py
 kernels.py
 rotated_fd.py
+sources.py
 tti_propagators.py
+staggered_kernels.py
+utils.py
+wave_utils.py
+data/*

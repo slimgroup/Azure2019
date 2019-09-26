@@ -1,10 +1,10 @@
 import numpy as np
 import segyio
-import subprocess
-import os
+import os, time, subprocess, h5py
 from scipy import interpolate
 from devito import Eq, Operator
 from azure.storage.blob import BlockBlobService, PublicAccess
+from scipy.signal import butter, sosfilt
 
 blob_service = BlockBlobService(account_name='', account_key='')
 
@@ -109,6 +109,13 @@ def model_get(container, blob_name, start_range=None, end_range=None, validate_c
     spacing = convert_float_from_string(meta['spacing'])
     x = np.fromstring(binary_blob.content, dtype=meta['dtype'])
     return x.reshape(shape), origin, spacing
+
+# Read hdf5 model file
+def read_h5_model(filename):
+    with h5py.File(filename, 'r') as f:
+        filekey = list(f.keys())[0]
+        data = np.array(f[filekey])
+    return data
 
 
 ####################################################################################################
@@ -424,26 +431,49 @@ def process_summaries(summary):
     for item in summary:
         for key in item:
             kernel += item[key].time
-            kernel += item[key].gflopss
-            kernel += item[key].gpointss
-            kernel += item[key].oi
-            kernel += item[key].ops
+            gflopss += item[key].gflopss
+            gpointss += item[key].gpointss
+            oi += item[key].oi
+            ops += item[key].ops
     return kernel, gflopss, gpointss, oi, ops
+
+def read_coordinates(file, return_grid_indicator=False):
+
+    with h5py.File(file, 'r') as f:
+        a_group_key = list(f.keys())[0]
+        coords = list(f[a_group_key])
+
+    if return_grid_indicator is True:
+        return coords[0], coords[1], coords[2], coords[3]
+    else:
+        return coords[0], coords[1], coords[2]
+
 
 ####################################################################################################
 # Filtering
 
-from scipy import interpolate
-from scipy.signal import butter, sosfilt
+def butter_highpass(highcut, fs, order=3):
+    normal_cutoff = float(highcut) / fs
+    sos = butter(order, normal_cutoff, analog=False, btype='highpass', output='sos')
+    return sos
 
-def butter_bandpass(lowcut, highcut, fs, order=5):
-        nyq = 0.5 * fs
-        low = lowcut / nyq
-        high = highcut / nyq
-        sos = butter(order, [low, high], analog=False, btype='band', output='sos')
-        return sos
+def butter_highpass_filter(data, highcut, fs, order=3):
+    # Source: https://github.com/guillaume-chevalier/filtering-stft-and-laplace-transform
+    sos = butter_highpass(highcut, fs, order=order)
+    y = sosfilt(sos, data)
+    return y
 
-def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
-        sos = butter_bandpass(lowcut, highcut, fs, order=order)
-        y = sosfilt(sos, data)
-        return y
+def butter_lowpass(lowcut, fs, order=3):
+    normal_cutoff = float(lowcut) / fs
+    sos = butter(order, normal_cutoff, analog=False, btype='lowpass', output='sos')
+    return sos
+
+def butter_lowpass_filter(data, lowcut, fs, order=3):
+    # Source: https://github.com/guillaume-chevalier/filtering-stft-and-laplace-transform
+    sos = butter_lowpass(lowcut, fs, order=order)
+    y = sosfilt(sos, data)
+    return y
+
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=3):
+    high = butter_highpass_filter(data, highcut, fs, order=order)
+    return butter_lowpass_filter(high, lowcut, fs, order=order)

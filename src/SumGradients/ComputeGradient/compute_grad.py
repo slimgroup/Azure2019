@@ -3,7 +3,7 @@ from AzureUtilities import array_put
 import json, base64, time
 from azure.storage.queue import QueueService, QueueMessageFormat
 
-queue_service = QueueService(account_name='gatechsponsored', account_key='fHlppOUxjbINeTQDPpaLtUvJte/rnFUOtTPQ2tgJTMHwrpfAHQ9wYcz7Uiqjn177MpoIWqJxYVWjWL6bfkdeZw==')
+queue_service = QueueService(account_name='', account_key='')
 queue_service.encode_function = QueueMessageFormat.text_base64encode
 
 batchsize = 100

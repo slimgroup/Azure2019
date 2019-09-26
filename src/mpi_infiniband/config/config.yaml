@@ -2,14 +2,14 @@ batch_shipyard:
   storage_account_settings: mystorageaccount
 global_resources:
   docker_images:
-    - slimcontainers.azurecr.io/devito_tti_mpi:v0.2
+    - slimdocker.azurecr.io/devito_tti:v1.1
   volumes:
     shared_data_volumes:
       azureblob_vol:
         volume_driver: azureblob
         storage_account_settings: mystorageaccount
-        azure_blob_container_name: seismic
-        container_path: $AZ_BATCH_NODE_SHARED_DIR/seismic
+        azure_blob_container_name: overthrust
+        container_path: $AZ_BATCH_NODE_SHARED_DIR/overthrust
         bind_options: rw
         mount_options:
           - --file-cache-timeout-in-seconds=0
