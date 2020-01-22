@@ -1,0 +1,31 @@
+job_specifications:
+- id: test-rtm-3D-pool-2
+  shared_data_volumes:
+    - azureblob_vol
+  tasks:
+  - docker_image: slimdockerwest.azurecr.io/devito_time_reversal:v0.2
+    environment_variables:
+      DEVITO_ARCH: intel
+      OMP_NUM_THREADS: 16
+      KMP_AFFINITY: verbose,scatter,granularity=fine
+      DEVITO_MPI: 1
+      DEVITO_OPENMP: 1
+      DEVITO_LOGGING: 'DEBUG'
+      BLOB_CONTAINER: 'overthrust'
+      SPACE_ORDER: 8
+      BATCHSIZE: 1
+    multi_instance:
+      num_instances: 2
+      pre_execution_command: source /opt/intel2019/bin/compilervarsnompi.sh intel64
+      mpi:
+        runtime: mpich
+        processes_per_node: 2
+        options:
+          - --bind-to socket
+    task_factory:
+      parametric_sweep:
+        product:
+        - start: 836
+          step: 1
+          stop: 1336
+    command: python3 $AZ_BATCH_NODE_SHARED_DIR/overthrust/scripts/overthrust_3D_limited.py {}

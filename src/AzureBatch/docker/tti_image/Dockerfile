@@ -1,7 +1,7 @@
-FROM slimcontainers.azurecr.io/devito:tti
+FROM slimdockerwest.azurecr.io/devito:icccompact
 
 # Install storage queue
-RUN pip install --user azure-storage-queue h5py
+RUN pip3 install --user azure-storage-queue h5py
 
 # Add application
 ADD ./tti /app/tti

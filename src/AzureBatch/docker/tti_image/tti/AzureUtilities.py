@@ -2,9 +2,10 @@ import numpy as np
 import segyio
 import os, time, subprocess, h5py
 from scipy import interpolate
-from devito import Eq, Operator
+from devito import Eq, Operator, info
 from azure.storage.blob import BlockBlobService, PublicAccess
 from scipy.signal import butter, sosfilt
+from sources import TimeAxis
 
 blob_service = BlockBlobService(account_name='', account_key='')
 
@@ -117,6 +118,10 @@ def read_h5_model(filename):
         data = np.array(f[filekey])
     return data
 
+def write_h5_model(filename, varname, var, dtype='float32'):
+    with h5py.File(filename, 'w') as data_file:
+        data_file.create_dataset(varname, data=var, dtype=dtype)
+    return True
 
 ####################################################################################################
 # segy read
@@ -448,6 +453,41 @@ def read_coordinates(file, return_grid_indicator=False):
     else:
         return coords[0], coords[1], coords[2]
 
+def resample_shot(rec, num):
+    start, stop = rec._time_range.start, rec._time_range.stop
+    dt0 = rec._time_range.step
+
+    new_time_range = TimeAxis(start=start, stop=stop, num=num)
+    dt = new_time_range.step
+
+    to_interp = np.asarray(rec.data)
+    data = np.zeros((num, to_interp.shape[1]), dtype='float32')
+
+    for i in range(to_interp.shape[1]):
+        tck = interpolate.splrep(rec._time_range.time_values, to_interp[:, i], k=3)
+        data[:, i] = interpolate.splev(new_time_range.time_values, tck)
+
+    coords_loc = np.asarray(rec.coordinates.data)
+    # Return new object
+    return data, coords_loc
+
+def save_rec(rec, src_coords, path, nt_new):
+    comm = rec.grid.distributor.comm
+    rank = comm.Get_rank()
+
+    if rec.data.size != 0:
+        rec_save, coords = resample_shot(rec, nt_new)
+
+        info("From rank %s, shot record of size %s, number of rec locations %s" % (rank, rec_save.shape, coords.shape))
+        info("From rank %s, writing %s in rec, maximum value is %s" % (rank, rec_save.shape, np.max(rec_save)))
+        segy_write(rec_save,
+                   [src_coords[0]],
+                   [src_coords[-1]],
+                   coords[:, 0],
+                   coords[:, -1],
+                   2.0,  path + "_rank_%s.segy" % (rank),
+                   sourceY=[src_coords[1]],
+                   groupY=coords[:, 1])
 
 ####################################################################################################
 # Filtering
