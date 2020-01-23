@@ -35,6 +35,14 @@ Follow these steps to reproduce the RTM example:
      docker build -t devito_azure_tti:v1.0 .
      ```
 
+    - Tag the image using your Azure repository name and push it to the container registry. E.g.:
+
+     ```
+     docker tag devito_azure_tti:v1.0 slimdockerwest.azurecr.io/devito_azure_tti:v1.1
+     docker push slimdockerwest.azurecr.io/devito_azure_tti:v1.1
+
+     ```
+
  2. Upload the model and acquisition geometry to Azure Blob Storage (we will add the model/geometry to an FTP server or a public blob so that it is available to everyone)
 
  3. Upload the application script to Blob Storage (`~/Azure2019/scripts/overthrust_3D_limited_offset.py`)
