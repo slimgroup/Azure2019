@@ -73,9 +73,9 @@ Follow these steps to reproduce the RTM example:
 
 **More documentation to be added soon.**
 
- - Azure Function for event-driven image summation:  `~/Azure2019/src/SumGradients/QueueTrigger`
+ - Azure Function for event-driven image summation:  `~/Azure2019/src/AzureFunctions/QueueTrigger`
 
- - Iterator for iterative workflows (e.g. least squares RTM): `~/Azure2019/src/SumGradients/Iterator`
+ - Iterator for iterative workflows (e.g. least squares RTM): `~/Azure2019/src/AzureFunctions/Iterator`
  
- - Invokation of Azure Batch job through Azure Functions: `~/Azure2019/src/SumGradients/ComputeGradient` (unfinished)
+ - Invokation of Azure Batch job through Azure Functions: `~/Azure2019/src/AzureFunctions/ComputeGradient` (unfinished)
 
