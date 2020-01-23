@@ -38,7 +38,7 @@ Follow these steps to reproduce the RTM example:
     - Tag the image using your Azure repository name and push it to the container registry. E.g.:
 
      ```
-     docker tag devito_azure_tti:v1.0 slimdockerwest.azurecr.io/devito_azure_tti:v1.1
+     docker tag devito_azure_tti:v1.0 slimdockerwest.azurecr.io/devito_azure_tti:v1.0
      docker push slimdockerwest.azurecr.io/devito_azure_tti:v1.1
 
      ```
