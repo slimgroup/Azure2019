@@ -2,6 +2,8 @@
 
 ## Content
 
+ - `generate_acquisition_geometry`: Create OBN acquisition geometry with dense source grid and random jittered receiver grid. Creates `hdf5` files for each source and receiver coordinates.
+
  - `overthrust_2D_local.py`: Test script for running 2D TTI RTM on a local desktop/laptop.
 
  - `overthrust_3D_local.py`: Script to locally verify the correct setup for 3D RTM. This script only reads the models, geometry, wavelet and sets up all operators, but does not actually compute anything.
