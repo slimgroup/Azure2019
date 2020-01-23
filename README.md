@@ -15,7 +15,7 @@ An event-driven workflow for severless seismic imaging on Azure.
 - Optional: [Batch Explorer](https://azure.github.io/BatchExplorer/) for monitoring batch jobs
 
 
-## Serverless Reverse-Time Migration) to monitor batch jobs: 
+## Serverless Reverse-Time Migration
 
 Follow these steps to reproduce the RTM example:
 
