@@ -19,20 +19,20 @@ An event-driven workflow for severless seismic imaging on Azure.
 
 Follow these steps to reproduce the RTM example:
 
- 1. Optional: (Re-)Build the docker images and upload them to the Azure Container registry or use pre-built public images.
+ 1. Optional: (Re-)Build the docker images and upload them to the Azure Container registry or use pre-built public images (we will add public pre-built images to docker hub).
     
      - First, build the base image locally:
 
      ``` 
      cd ~/Azure2019/src/AzureBatch/docker/base_image
-     docker build -t devito_azure_base:v1.0
+     docker build -t devito_azure_base:v1.0 .
      ```
 
     - Next, we can build the TTI image locally as follows:
 
      ``` 
      cd ~/Azure2019/src/AzureBatch/docker/tti_image
-     docker build -t devito_azure_tti:v1.0
+     docker build -t devito_azure_tti:v1.0 .
      ```
 
  2. Upload the model to Azure Blob Storage (we will add the model to an FTP server or a public blob so that it is available to everyone)
