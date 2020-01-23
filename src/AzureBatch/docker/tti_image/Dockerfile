@@ -1,7 +1,7 @@
 FROM devito_azure_base:v1.0
 
 # Install storage queue
-RUN pip3 install --user azure-storage-queue h5py
+RUN pip3 install --user azure-storage-queue azure-storage azure-storage-blob matplotlib h5py
 
 # Add application
 ADD ./tti /app/tti
