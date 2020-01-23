@@ -48,6 +48,8 @@ Follow these steps to reproduce the RTM example:
 
 5. Run the example using Batch Shipyard:
 
+Move to corresponding directory: `cd ~/Azure2019/src/AzureBatch/shipyard/config_intel` or `cd ~/Azure2019/src/AzureBatch/shipyard/config_gcc`.
+
 ```
 # Start pool
 ./shipyard pool add -v
