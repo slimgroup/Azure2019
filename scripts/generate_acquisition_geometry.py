@@ -126,10 +126,10 @@ rec_coordinates_dithered = np.concatenate((X_rec_dith.reshape(-1,1), Y_rec_dith.
     Z_rec_jit.reshape(-1,1), I_dith.reshape(-1,1)), axis=1)
 
 # Save sources as receiver coordinates and vice versa (due to source-receiver reciprocity)
-with h5py.File('src_coordinates_new.h5', 'w') as data_file:
+with h5py.File('src_coordinates.h5', 'w') as data_file:
     data_file.create_dataset('xsrc', data=rec_coordinates_dithered)
 
-with h5py.File('rec_coordinates_new.h5', 'w') as data_file:
+with h5py.File('rec_coordinates.h5', 'w') as data_file:
     data_file.create_dataset('rec', data=src_coordinates)
 
 # Plot grids

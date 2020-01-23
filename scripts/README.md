@@ -17,7 +17,7 @@
 
 ## Acquisition geometry
 
-The source and receiver acquisition geometry as plotted below were generated with a Matlab script and saved as hdf5 files, which are in turn read by the above scripts. We will add a Python version of this script to be able to re-generate the geometry and/or modify it.
+The source and receiver acquisition geometry as plotted below were generated with the script `generate_acquisition_geometry.py`. 
 
 ![](../documentation/source_grid.png)
 
