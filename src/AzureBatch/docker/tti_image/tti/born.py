@@ -80,7 +80,7 @@ def born(model, save=False, space_order=12, sub=None, recu=False, fs=False, isic
     if recu:
         recu = Receiver(name='recu', grid=model.grid, time_range=time_range, npoint=2)
         expression += recu.interpolate(expr=u + v)
-    kwargs = {'dse': 'aggressive', 'dle': 'advanced'}
+    kwargs = {'dse': 'advanced', 'dle': 'advanced'}
     op = Operator(expression + eq_save, subs=model.spacing_map,
                   name="born", **kwargs)
 
