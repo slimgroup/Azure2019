@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-# set up base and ssh keys
+# Set up base and ssh keys
 COPY ssh_config /root/.ssh/config
 RUN apt-get update
 RUN apt-get install -y g++-8  make ca-certificates wget openssh-server openssh-client \
@@ -18,7 +18,7 @@ RUN apt-get install -y g++-8  make ca-certificates wget openssh-server openssh-c
 # Utils
 RUN apt-get install -y htop vim git-core
 
-# download and install OpenMPI
+# Download and install OpenMPI
 ENV MPICH_VERSION="3.3"
 RUN wget -q -O - wget https://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPICH_VERSION}.tar.gz | tar -xzf - \
     && cd mpich-${MPICH_VERSION} \

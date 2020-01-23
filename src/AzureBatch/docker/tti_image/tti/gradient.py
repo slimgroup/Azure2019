@@ -3,10 +3,9 @@ from sympy import cos, sin
 
 from devito import clear_cache, Eq, Function, TimeFunction, Inc, Operator
 from forward import subsampled
-from kernels import kernel_zhang_adj, kernel_zhang_fwd
+from kernels import kernel_zhang_fwd
 from sources import Receiver, TimeAxis
-from wave_utils import imaging_condition, freesurface, imaging_condition_sg
-from staggered_kernels import adjoint_stencil, pressure_fields, src_rec
+from wave_utils import imaging_condition, freesurface
 
 def gradient(model, save=False, space_order=12, sub=None, fs=False, isic=False):
     clear_cache()

@@ -3,7 +3,6 @@ from sympy import cos, sin
 
 from devito import clear_cache, Grid, Eq, TimeFunction, Operator, ConditionalDimension, Function
 from kernels import kernel_zhang_fwd
-from staggered_kernels import *
 from sources import Receiver, TimeAxis
 from wave_utils import freesurface, subsampled
 

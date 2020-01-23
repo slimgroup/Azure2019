@@ -4,8 +4,7 @@ from sympy import cos, sin
 from devito import clear_cache, Grid, Eq, TimeFunction, Operator, ConditionalDimension, Function
 from kernels import kernel_zhang_fwd
 from sources import Receiver, TimeAxis
-from staggered_kernels import *
-from wave_utils import freesurface, linearized_source, linearized_source_sg, subsampled
+from wave_utils import freesurface, linearized_source, subsampled
 
 def born(model, save=False, space_order=12, sub=None, recu=False, fs=False, isic=False):
     clear_cache()
