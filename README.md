@@ -39,7 +39,7 @@ Follow these steps to reproduce the RTM example:
 
      ```
      docker tag devito_azure_tti:v1.0 slimdockerwest.azurecr.io/devito_azure_tti:v1.0
-     docker push slimdockerwest.azurecr.io/devito_azure_tti:v1.1
+     docker push slimdockerwest.azurecr.io/devito_azure_tti:v1.0
 
      ```
 
