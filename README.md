@@ -4,17 +4,18 @@ An event-driven workflow for severless seismic imaging on Azure.
 
 ## Prerequisites
 
-- Docker: https://www.docker.com/products/docker-desktop
+- [Docker](https://www.docker.com/products/docker-desktop)
 
-- Azure CLI: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest
+- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
 
-- Batch Shipyard: https://github.com/Azure/batch-shipyard
+- [Batch Shipyard](https://github.com/Azure/batch-shipyard)
 
-- For the event-driven image summation; Azure Functions Core Tools: https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local#v2
+- For the event-driven image summation: [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local#v2)
 
-- Optional; Batch Explorer to monitor batch jobs: https://azure.github.io/BatchExplorer/
+- Optional: [Batch Explorer](https://azure.github.io/BatchExplorer/) for monitoring batch jobs
 
-## Serverless Reverse-Time Migration
+
+## Serverless Reverse-Time Migration) to monitor batch jobs: 
 
 Follow these steps to reproduce the RTM example:
 
@@ -38,9 +39,9 @@ Follow these steps to reproduce the RTM example:
 
  3. Upload the application script to Blob Storage (`~/Azure2019/scripts/overthrust_3D_limited.py`)
 
- 4. Modify the Batch Shipyard config files (`~/Azure2019/src/AzureBatch/shipyard/config_intel)
+ 4. Modify the Batch Shipyard config files (`~/Azure2019/src/AzureBatch/shipyard/config_intel`)
 
-     - Fill out `credentials.yml`
+     - Add and fill out `credentials.yml`
 
      - Fill out missing entries in `config.yaml`, `jobs.yaml`, `pool.yaml` with corresponding pool size, VM types, etc.
 
