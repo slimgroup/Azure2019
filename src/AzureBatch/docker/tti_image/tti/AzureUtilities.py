@@ -7,7 +7,7 @@ from azure.storage.blob import BlockBlobService, PublicAccess
 from scipy.signal import butter, sosfilt
 from sources import TimeAxis
 
-blob_service = BlockBlobService(account_name='', account_key='')
+# blob_service = BlockBlobService(account_name='', account_key='')
 
 ####################################################################################################
 # array put and get

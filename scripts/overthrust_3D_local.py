@@ -1,3 +1,6 @@
+import sys, os
+# Add path to TTI module
+sys.path.insert(0, os.getcwd()[:-8] + '/src/AzureBatch/docker/tti_image/tti')
 import numpy as np
 import matplotlib.pyplot as plt
 from model import Model
@@ -96,8 +99,6 @@ model = Model(shape=shape, origin=origin, spacing=spacing, vp=np.sqrt(1/m0), spa
               epsilon=epsilon, delta=delta, theta=theta, phi=phi, rho=rho, nbpml=40, dm=dm, dt=0.64)
 
 
-#check_thomsen_parameters(model)
-
 # #########################################################################################
 
 # Time axis
@@ -118,19 +119,9 @@ src_coordinates = np.array([xsrc, ysrc, zsrc])
 src = RickerSource(name='src', grid=model.grid, f0=0.02, time_range=time, npoint=1)
 src.coordinates.data[0, :] = src_coordinates[:]
 
-# Wavelet
-# wavelet = np.concatenate((np.zeros((20,)), np.load("../data/wavelet/wavelet_orig.npy"), np.zeros((100,))))
-# twave = [i*1.2 for i in range(wavelet.shape[0])]
-# tnew = [i*dt for i in range(int(1 + (twave[-1]-t0) / dt))]
-# fq = interpolate.interp1d(twave, wavelet, kind='linear')
-# q_custom = np.zeros(src.data.shape)
-# q_custom[:len(tnew), 0] = fq(tnew)
-# q_custom[:, 0] = butter_bandpass_filter(q_custom[:, 0], .01, .03, 1/dt)
-# q_custom[:, 0] = np.max(src.data) * q_custom[:, 0] / np.max(q_custom[:, 0])
-# src.data[:, 0] = q_custom[:, 0]
-
-wavelet = np.load('../data/wavelet/wavelet_3D_2000.npy')
-src.data[:] = wavelet
+# Read Wavelet
+wavelet = np.load('../data/wavelet/wavelet_3D.npy')
+src.data[:] = wavelet[0:len(src.data)]
 
 #########################################################################################
 

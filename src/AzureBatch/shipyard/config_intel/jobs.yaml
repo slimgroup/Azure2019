@@ -28,4 +28,4 @@ job_specifications:
         - start: 836
           step: 1
           stop: 1336
-    command: python3 $AZ_BATCH_NODE_SHARED_DIR/overthrust/scripts/overthrust_3D_limited.py {}
+    command: python3 $AZ_BATCH_NODE_SHARED_DIR/overthrust/scripts/overthrust_3D_limited_offset.py {}

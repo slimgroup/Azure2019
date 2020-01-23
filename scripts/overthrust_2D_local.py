@@ -1,3 +1,6 @@
+import sys, os
+# Add path to TTI module
+sys.path.insert(0, os.getcwd()[:-8] + '/src/AzureBatch/docker/tti_image/tti')
 import numpy as np
 import matplotlib.pyplot as plt
 from model import Model
@@ -7,10 +10,6 @@ import segyio as so
 from scipy import interpolate, ndimage
 from AzureUtilities import read_h5_model, write_h5_model, butter_bandpass_filter, butter_lowpass_filter, resample, process_summaries, read_coordinates, save_rec, restrict_model_to_receiver_grid, extent_gradient
 from scipy import interpolate, ndimage
-# from mpi4py import MPI
-# from devito import configuration
-# configuration['mpi'] = True
-
 
 #########################################################################################
 
@@ -36,8 +35,6 @@ def limit_receiver_grid(xsrc, xrec, zrec, maxoffset):
 
 #########################################################################################
 
-
-# Read models
 # Read models
 rho = read_h5_model('../data/models/rho_with_salt.h5')
 epsilon = read_h5_model('../data/models/epsilon_with_salt.h5')
@@ -96,10 +93,6 @@ print('New shape: ', shape, ' and origin ', origin)
 model = Model(shape=shape, origin=origin, spacing=spacing, vp=np.sqrt(1/m0), space_order=so,
               epsilon=epsilon, delta=delta, theta=theta, rho=rho, nbpml=40, dm=dm, dt=0.64)
 
-# comm = model.grid.distributor.comm
-# size = comm.Get_size()
-# rank = comm.Get_rank()
-
 #########################################################################################
 
 # Time axis
@@ -122,11 +115,6 @@ rec_coords = np.empty((nrec, 2))
 rec_coords[:, 0] = xrec
 rec_coords[:, 1] = zrec
 
-# Wavelet
-# wavelet = np.load('../data/wavelet/wavelet_3D_2000.npy')
-# src.data[:,0] = wavelet[0:time.num,0]
-#
-
 #########################################################################################
 
 # Devito operator
@@ -140,44 +128,6 @@ grad.data[:,0:66] = 0   # mute water column
 # Remove pml and pad
 rtm = grad.data[model.nbpml:-model.nbpml, model.nbpml:-model.nbpml]  # remove padding
 rtm = extent_gradient(shape_full, origin_full, shape, origin, spacing, rtm)
-plt.figure(); plt.imshow(d_obs.data, vmin=-1, vmax=1, cmap='gray', aspect='auto')
-plt.figure(); plt.imshow(np.transpose(rtm), vmin=-1e1, vmax=1e1, cmap='gray', aspect='auto')
+plt.figure(); plt.imshow(d_obs.data, vmin=-.1, vmax=.1, cmap='gray', aspect='auto')
+plt.figure(); plt.imshow(np.transpose(rtm), vmin=-2e-2, vmax=2e-2, cmap='gray', aspect='auto')
 plt.show()
-
-# # Gather results
-# if rank > 0:
-#     # Send gradient to master
-#     comm.send(model.vp.local_indices, dest=0, tag=10)
-#     comm.send(grad.data, dest=0, tag=11)
-#
-# else:   # Master
-#     # Initialize full array
-#     rtm = np.empty(shape=model.vp.shape_global, dtype='float32')
-#     rtm[model.vp.local_indices] = grad.data
-#
-#     # Collect gradients and data
-#     for j in range(1, size):
-#         local_indices = comm.recv(source=j, tag=10)
-#         glocal = comm.recv(source=j, tag=11)
-#         rtm[local_indices] = glocal
-#
-#     # Remove pml and extent back to full size
-#     rtm = rtm[model.nbpml:-model.nbpml, model.nbpml:-model.nbpml]  # remove padding
-#     rtm = extent_gradient(shape_full, origin_full, shape, origin, spacing, rtm)
-#
-#     # Save gradient to bucket
-#     write_h5_model('overthrust_2D_rtm_shot_0.h5', 'rtm', rtm)
-#
-#     # Process devito summaries and save in blob storage
-#     kernel, gflopss, gpointss, oi, ops = process_summaries([summary1, summary2])
-#     timings = np.array([kernel, gflopss, gpointss, oi, ops])
-#     timings.dump('timings_rtm_0.npy')
-#
-#     # Plot
-#     plt.figure(); plt.imshow(np.transpose(rtm), vmin=-2e-4, vmax=2e-4, cmap='gray', aspect='auto')
-#     plt.show()
-
-
-#path = '/home/pwitte3/Azure/data/results/linearized_shot_no_' + str(0)
-#save_rec(d_obs, src_coordinates, path, nt)
-#plt.figure(); plt.imshow(shot, vmin=-.1, vmax=.1, cmap='gray', aspect='auto')
