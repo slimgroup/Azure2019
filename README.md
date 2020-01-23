@@ -1,3 +1,80 @@
-## New generation seismic processing
+# New generation seismic processing
 
 An event-driven workflow for severless seismic imaging on Azure.
+
+## Prerequisites
+
+- Docker: https://www.docker.com/products/docker-desktop
+
+- Azure CLI: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest
+
+- Batch Shipyard: https://github.com/Azure/batch-shipyard
+
+- For the event-driven image summation; Azure Functions Core Tools: https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local#v2
+
+- Optional; Batch Explorer to monitor batch jobs: https://azure.github.io/BatchExplorer/
+
+## Serverless Reverse-Time Migration
+
+Follow these steps to reproduce the RTM example:
+
+ 1. Optional: (Re-)Build the docker images and upload them to the Azure Container registry or use pre-built public images.
+    
+     - First, build the base image locally:
+
+     ``` 
+     cd ~/Azure2019/src/AzureBatch/docker/base_image
+     docker build -t devito_azure_base:v1.0
+     ```
+
+    - Next, we can build the TTI image locally as follows:
+
+     ``` 
+     cd ~/Azure2019/src/AzureBatch/docker/tti_image
+     docker build -t devito_azure_tti:v1.0
+     ```
+
+ 2. Upload the model to Azure Blob Storage (we will add the model to an FTP server or a public blob so that it is available to everyone)
+
+ 3. Upload the application script to Blob Storage (`~/Azure2019/scripts/overthrust_3D_limited.py`)
+
+ 4. Modify the Batch Shipyard config files (`~/Azure2019/src/AzureBatch/shipyard/config_intel)
+
+     - Fill out `credentials.yml`
+
+     - Fill out missing entries in `config.yaml`, `jobs.yaml`, `pool.yaml` with corresponding pool size, VM types, etc.
+
+
+5. Run the example using Batch Shipyard:
+
+```
+# Start pool
+./shipyard pool add -v
+￼
+# Start job
+./shipyard jobs add --tail stdout.txt -v
+```
+
+6. Optional: Monitor batch job using Batch Explorer
+
+
+7. After job has completed, clean up:
+
+```
+# Delete job
+./shipyard jobs del -v
+
+# Shut down pool
+./shipyard pool del -v
+```
+
+## Event-driven workflow and image summation
+
+**More documentation to be added soon.**
+
+ - Azure Function for event-driven image summation:  `~/Azure2019/src/SumGradients/QueueTrigger`
+
+ - Iterator for iterative workflows (e.g. least squares RTM): `~/Azure2019/src/SumGradients/Iterator`
+ 
+ - Invokation of Azure Batch job through Azure Functions: `~/Azure2019/src/SumGradients/ComputeGradient` (unfinished)
+

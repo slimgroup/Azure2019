@@ -1,4 +1,4 @@
-FROM slimdockerwest.azurecr.io/devito:icccompact
+FROM devito_azure_base:v1.0
 
 # Install storage queue
 RUN pip3 install --user azure-storage-queue h5py
