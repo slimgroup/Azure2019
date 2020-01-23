@@ -1,5 +1,5 @@
 pool_specification:
-  id: overthrust-ubuntu-pool
+  id: overthrust-ubuntu-pool-2
   vm_configuration:
     platform_image:
       offer: UbuntuServer
@@ -7,9 +7,9 @@ pool_specification:
       sku: '18.04-LTS'
       native: true
   vm_count:
-    dedicated: 0
-    low_priority: 2
-  vm_size: Standard_E8s_v3
+    dedicated: 2
+    low_priority: 0
+  vm_size: Standard_E64s_v3
   inter_node_communication_enabled: true
   ssh:
     username: shipyard

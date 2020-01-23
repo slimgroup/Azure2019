@@ -2,7 +2,8 @@ batch_shipyard:
   storage_account_settings: mystorageaccount
 global_resources:
   docker_images:
-    - slimdockerwest.azurecr.io/devito_gnu:v0.2
+    # - slimdockerwest.azurecr.io/devito_azure_tti:v1.2
+    - mloubout/devito-azure:v1.t
   volumes:
     shared_data_volumes:
       azureblob_vol:

@@ -1,24 +1,28 @@
 job_specifications:
-- id: test-rtm-mpi-4
+- id: test-rtm-mpi-2
   auto_complete: true
   shared_data_volumes:
     - azureblob_vol
   tasks:
-  - docker_image: slimdockerwest.azurecr.io/devito_gnu:v0.2
+  - docker_image: mloubout/devito-azure:v1.t 
+#slimdockerwest.azurecr.io/devito_azure_tti:v1.2
     environment_variables:
       DEVITO_ARCH: gcc
-      OMP_NUM_THREADS: 4
-      DEVITO_MPI: 1
+      OMP_NUM_THREADS: 16
+      DEVITO_MPI: 'basic'
       DEVITO_OPENMP: 1
       OMP_PROC_BIND: 'close'
       OMP_PLACES: 'cores'
       DEVITO_LOGGING: 'DEBUG'
       BLOB_CONTAINER: 'overthrust'
-      SPACE_ORDER: 12
+      SPACE_ORDER: 8
       BATCHSIZE: 1
+    default_working_dir: container
     multi_instance:
-      num_instances: pool_current_low_priority
+      num_instances: pool_current_dedicated
       mpi:
         runtime: mpich
-        processes_per_node: 1
-    command: python3 $AZ_BATCH_NODE_SHARED_DIR/overthrust/scripts/overthrust_2D_batch_mpi.py 100
+        processes_per_node: 2
+        options:
+          - --bind-to socket
+    command: python3 $AZ_BATCH_NODE_SHARED_DIR/overthrust/scripts/overthrust_3D_limited.py 100
