@@ -91,6 +91,7 @@ def segy_write(data, sourceX, sourceZ, groupX, groupZ, dt, filename, sourceY=Non
 
 #######################################################################################
 t0 = time.time()
+
 ####### Filter arguments
 description = ("3D modeling on tti overdone")
 parser = ArgumentParser(description=description)
@@ -99,7 +100,7 @@ parser.add_argument("--id",  dest='shot_id', default=1, type=int,
 parser.add_argument("--recloc",  dest='recloc', default="", type=str,
                     help="Path to results directory in blob")
 parser.add_argument("--modelloc",  dest='modelloc', default="", type=str,
-                    help="Path to results directory in blob")
+                    help="Path to model directory in blob")
 parser.add_argument("--geomloc",  dest='geomloc', default="", type=str,
                     help="Path to geometry directory in blob")
 parser.add_argument("--fs",  dest='freesurf', default=False, action='store_true',
