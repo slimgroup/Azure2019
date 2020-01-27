@@ -62,29 +62,29 @@ def segy_write(data, sourceX, sourceZ, groupX, groupZ, dt, filename, sourceY=Non
         groupY = np.zeros(nxrec, dtype='int')
 
     # Create spec object
-    spec = segyio.spec()
+    spec = so.spec()
     spec.ilines = np.arange(nxrec)    # dummy trace count
     spec.xlines = np.zeros(1, dtype='int')  # assume coordinates are already vectorized for 3D
     spec.samples = range(nt)
     spec.format=1
     spec.sorting=1
 
-    with segyio.create(filename, spec) as segyfile:
+    with so.create(filename, spec) as segyfile:
         for i in range(nxrec):
             segyfile.header[i] = {
-                segyio.su.tracl : i+1,
-                segyio.su.tracr : i+1,
-                segyio.su.fldr : 1,
-                segyio.su.tracf : i+1,
-                segyio.su.sx : int(np.round(sourceX[0] * np.abs(coordScalar))),
-                segyio.su.sy : int(np.round(sourceY[0] * np.abs(coordScalar))),
-                segyio.su.selev: int(np.round(sourceZ[0] * np.abs(elevScalar))),
-                segyio.su.gx : int(np.round(groupX[i] * np.abs(coordScalar))),
-                segyio.su.gy : int(np.round(groupY[i] * np.abs(coordScalar))),
-                segyio.su.gelev : int(np.round(groupZ[i] * np.abs(elevScalar))),
-                segyio.su.dt : int(dt*1e3),
-                segyio.su.scalel : int(elevScalar),
-                segyio.su.scalco : int(coordScalar)
+                so.su.tracl : i+1,
+                so.su.tracr : i+1,
+                so.su.fldr : 1,
+                so.su.tracf : i+1,
+                so.su.sx : int(np.round(sourceX[0] * np.abs(coordScalar))),
+                so.su.sy : int(np.round(sourceY[0] * np.abs(coordScalar))),
+                so.su.selev: int(np.round(sourceZ[0] * np.abs(elevScalar))),
+                so.su.gx : int(np.round(groupX[i] * np.abs(coordScalar))),
+                so.su.gy : int(np.round(groupY[i] * np.abs(coordScalar))),
+                so.su.gelev : int(np.round(groupZ[i] * np.abs(elevScalar))),
+                so.su.dt : int(dt*1e3),
+                so.su.scalel : int(elevScalar),
+                so.su.scalco : int(coordScalar)
             }
             segyfile.trace[i] = data[:, i]
         segyfile.dt=int(dt*1e3)
@@ -209,7 +209,7 @@ t0 = time.time()
 # Check output
 
 info("Nan values : %s" % np.any(np.isnan(d_obs.data[:])))
-info("saving shot records")
+info("saving shot records %srecloc%s%s" % (recloc, rank, shot_id))
 
 data_loc, coord_loc = resample(d_obs, 5001)
 np.save("%srecloc%s%s.npy"% (recloc, rank, shot_id), data_loc)
@@ -223,7 +223,7 @@ timer(t0, 'Saved data')
 if rank == 0:
 
     data = np.load("%srecloc0%s.npy" % (recloc, shot_id))
-    coords = np.load("%srecloc0%s.npy" % (recloc, shot_id))
+    coords = np.load("%scoordloc0%s.npy" % (recloc, shot_id))
 
     for i in range(1, size):
         # Wait until all files are ready
@@ -243,15 +243,15 @@ if rank == 0:
                 np.vstack((coords, c))
                 np.hstack((data, datai[:, j]))
 
+        os.system("rm -f %srecloc%s%s.npy %scoordloc%s%s.npy" % (recloc, i, shot_id, recloc, i, shot_id))
     info("Writing shot record of size (%s, %s) to segy file, maximum value is %s" % (data.shape[0], data.shape[1], np.max(data)))
-
+    os.system("rm -f %srecloc%s%s.npy %scoordloc%s%s.npy" % (recloc, 0, shot_id, recloc, 0, shot_id))
     segy_write(data,
-               [src_coords[0]],
-               [src_coords[-1]],
+               [src_coords[0, 0]],
+               [src_coords[0, -1]],
                coords[:, 0],
                coords[:, -1],
                2.0,  "%srec%s.segy" % (recloc, shot_id),
-               sourceY=[src_coords[1]],
+               sourceY=[src_coords[0, 1]],
                groupY=coords[:, 1])
 
-os.system("rm -f %srecloc%s%s.npy %scoordloc%s%s.npy" % (recloc, rank, shot_id, recloc, rank, shot_id))
