@@ -1,8 +1,10 @@
 # Base imports
+import sys, os
+sys.path.insert(0, '/app/tti')
+
 from argparse import ArgumentParser
 import numpy as np
 import time
-import os
 
 # Devito imports
 from devito.logger import info  
@@ -158,28 +160,27 @@ f0 = 0.025
 time_axis = TimeAxis(start=tstart, step=dt, stop=tn)
 
 #########################################################################################
-# Source and receiver geometries
-nrecx = 101
-nrecy = 401
-nrec= nrecx * nrecy
 
-src_coords = np.empty((1, len(spacing)))
-src_coords[0, :] = np.array(model.domain_size) * .5
-src_coords[0, -1] = 287.5
+# Read coordinates and source index
+file_src = geomloc + 'src_coordinates.h5'
+file_rec = geomloc + 'rec_coordinates.h5'
+xsrc, ysrc, zsrc = read_coordinates(file_src)
+xrec, yrec, zrec = read_coordinates(file_rec)
+xsrc = xsrc[shot_id]; ysrc = ysrc[shot_id]; zsrc = zsrc[shot_id]
+print('Source location: ', xsrc, ', ', ysrc, ', ', zsrc)
 
-rec_coordinates = np.empty((nrecx, nrecy, 3))
-for i in range(nrecx):
-    for j in range(nrecy):
-        rec_coordinates[i, j, 0] = i * spacing[0] * 8
-        rec_coordinates[i, j, 1] = j * spacing[1] * 2
-        rec_coordinates[i, j, 2] = 6.0
+# Set up receiver coordinates
+rec_coords = np.concatenate((xrec.reshape(-1,1), yrec.reshape(-1,1), zrec.reshape(-1,1)), axis=1)
+print('Number of receivers: ', rec_coords.shape[0])
 
-rec_coordinates = np.reshape(rec_coordinates, (nrec, 3))
-
-
+# Set up source coordinates
+src_coordinates = np.array([xsrc, ysrc, zsrc])
 src = RickerSource(name='src', grid=model.grid, f0=f0, time_range=time_axis, npoint=1)
-src.coordinates.data[0, :] = src_coords[:]
+src.coordinates.data[0, 0] = src_coordinates[0]
+src.coordinates.data[0, 1] = src_coordinates[1]
+src.coordinates.data[0, 2] = src_coordinates[2]
 
+# Wavelet
 wavelet = np.concatenate((np.load("%swavelet.npy"%geomloc), np.zeros((100,))))
 twave = [i*1.2 for i in range(wavelet.shape[0])]
 tnew = [i*dt for i in range(int(1 + (twave[-1]-tstart) / dt))]
@@ -200,7 +201,7 @@ tti = TTIPropagators(model, space_order=space_order)
 #########################################################################################
 # Data
 info("Starting forward modeling")
-d_obs, u, v = tti.forward(src, rec_coordinates, freesurface=freesurf, autotune=('aggressive', 'runtime'))
+d_obs, u, v = tti.forward(src, rec_coords, freesurface=freesurf, autotune=('aggressive', 'runtime'))
 
 timer(t0, 'Run forward')
 t0 = time.time()
