@@ -103,7 +103,7 @@ model = Model(shape=shape, origin=origin, spacing=spacing, vp=np.sqrt(1/m0), spa
 
 # Time axis
 t0 = 0.
-tn = 2000.
+tn = 100.
 dt_shot = 4.
 nt = tn/dt_shot + 1
 dt = 0.64   #model.critical_dt*.8
@@ -126,7 +126,7 @@ src.data[:] = wavelet[0:len(src.data)]
 #########################################################################################
 
 # # Devito operator
-# tti = TTIPropagators(model, space_order=8)
+tti = TTIPropagators(model, space_order=8)
 #
 # # Data
 # d_obs= tti.born(src, rec_coords)[0]

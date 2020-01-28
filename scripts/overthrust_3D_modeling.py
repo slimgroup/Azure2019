@@ -153,7 +153,7 @@ t0 = time.time()
 # Model a 2D shot
 # Time axis
 tstart = 0.
-tn = 5000.
+tn = 500.
 
 dt = model.critical_dt
 f0 = 0.025
