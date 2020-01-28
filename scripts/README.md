@@ -14,6 +14,8 @@
 
  - `fetch_results.py`: Script for fetching images from Azure while the RTM script is running.
 
+ - `overthrust_3D_modeling.py`: Script for modeling seismic shot records.
+
 
 ## Acquisition geometry
 

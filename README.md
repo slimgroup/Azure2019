@@ -46,7 +46,7 @@ Follow these steps to reproduce the RTM example:
 
  3. Upload the application script to Blob Storage (`~/Azure2019/scripts/overthrust_3D_modeling.py` for modeling and `~/Azure2019/scripts/overthrust_3D_limited_offset.py` for RTM)
 
- 4. Modify the Batch Shipyard config files (`~/Azure2019/src/AzureBatch/shipyard/config_intel`)
+ 4. Modify the Batch Shipyard config files (`~/Azure2019/src/AzureBatch/shipyard/config_gcc`)
 
      - Add and fill out `credentials.yml`
 
