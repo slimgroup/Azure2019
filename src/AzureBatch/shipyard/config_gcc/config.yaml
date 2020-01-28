@@ -1,15 +1,15 @@
 batch_shipyard:
-  storage_account_settings: mystorageaccount
+  storage_account_settings: storage_account_name <- edit
 global_resources:
   docker_images:
-    - slimdockerwest.azurecr.io/devito_azure_tti:v1.0
+    - slimdockerwest.azurecr.io/devito_azure_tti:v1.0 <- update in case container changed
   volumes:
     shared_data_volumes:
       azureblob_vol:
         volume_driver: azureblob
-        storage_account_settings: mystorageaccount
-        azure_blob_container_name: overthrust
-        container_path: $AZ_BATCH_NODE_SHARED_DIR/overthrust
+        storage_account_settings: storage_account_name  <- edit
+        azure_blob_container_name: azuredevitoslim
+        container_path: $AZ_BATCH_NODE_SHARED_DIR/azuredevitoslim
         bind_options: rw
         mount_options:
           - --file-cache-timeout-in-seconds=0

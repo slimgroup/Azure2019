@@ -44,7 +44,7 @@ Follow these steps to reproduce the RTM example:
 
  2. Upload the model and acquisition geometry to Azure Blob Storage (we will add the model/geometry to an FTP server or a public blob so that it is available to everyone)
 
- 3. Upload the application script to Blob Storage (`~/Azure2019/scripts/modeling_demo_azure.py` for modeling and `~/Azure2019/scripts/overthrust_3D_limited_offset.py` for RTM)
+ 3. Upload the application script to Blob Storage (`~/Azure2019/scripts/overthrust_3D_modeling.py` for modeling and `~/Azure2019/scripts/overthrust_3D_limited_offset.py` for RTM)
 
  4. Modify the Batch Shipyard config files (`~/Azure2019/src/AzureBatch/shipyard/config_intel`)
 
@@ -55,7 +55,7 @@ Follow these steps to reproduce the RTM example:
 
 5. Run the example using Batch Shipyard:
 
-Move to corresponding directory: `cd ~/Azure2019/src/AzureBatch/shipyard/config_intel` or `cd ~/Azure2019/src/AzureBatch/shipyard/config_gcc`.
+Move to corresponding directory: `cd ~/Azure2019/src/AzureBatch/shipyard/config_gcc`.
 
 ```
 # Start pool

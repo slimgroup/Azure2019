@@ -1,5 +1,5 @@
 pool_specification:
-  id: overthrust-ubuntu-pool-2
+  id: overthrust-ubuntu-pool
   vm_configuration:
     platform_image:
       offer: UbuntuServer
@@ -9,7 +9,7 @@ pool_specification:
   vm_count:
     dedicated: 2
     low_priority: 0
-  vm_size: Standard_E64s_v3
+  vm_size: Standard_E64s_v3 <- fill in correct VM type
   inter_node_communication_enabled: true
   ssh:
     username: shipyard
