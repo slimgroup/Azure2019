@@ -144,7 +144,7 @@ t0 = time.time()
 
 # Time axis
 tstart = 0.
-tn = 1000.
+tn = 500.
 dt = model.critical_dt
 f0 = 0.025
 time_axis = TimeAxis(start=tstart, step=dt, stop=tn)
@@ -196,7 +196,7 @@ tti = TTIPropagators(model, space_order=space_order)
 
 # Data
 info("Starting forward modeling")
-d_obs, u, v = tti.forward(src, rec_coordinates, freesurface=freesurf, autotune=('aggressive', 'runtime'))
+d_obs, u, v = tti.forward(src, rec_coordinates, autotune=('aggressive', 'runtime'))
 timer(t0, 'Run forward')
 t0 = time.time()
 
@@ -204,8 +204,9 @@ t0 = time.time()
 
 # Check output
 info("Nan values : %s" % np.any(np.isnan(d_obs.data[:])))
+info("Max values : %s" % np.any(np.max(d_obs.data[:])))
 info("saving shot records %srecloc%s%s" % (recloc, rank, shot_id))
-data_loc, coord_loc = resample(d_obs, 5001)
+data_loc, coord_loc = resample(d_obs, 126)
 np.save("%srecloc%s%s.npy"% (recloc, rank, shot_id), data_loc)
 np.save("%scoordloc%s%s.npy"% (recloc, rank, shot_id), coord_loc)
 timer(t0, 'Saved data')
@@ -245,4 +246,3 @@ if rank == 0:
                2.0,  "%srec%s.segy" % (recloc, shot_id),
                sourceY=[src_coords[0, 1]],
                groupY=coords[:, 1])
-
