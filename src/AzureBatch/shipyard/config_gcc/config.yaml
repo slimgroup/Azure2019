@@ -2,7 +2,7 @@ batch_shipyard:
   storage_account_settings: storage_account_name <- edit
 global_resources:
   docker_images:
-    - slimdockerwest.azurecr.io/devito_azure_tti:v1.0 <- update in case container changed
+    - slimdockerwest.azurecr.io/devito_azure_tti:v1.0 <- enter docker image
   volumes:
     shared_data_volumes:
       azureblob_vol:

@@ -4,7 +4,7 @@ job_specifications:
   shared_data_volumes:
     - azureblob_vol
   tasks:
-  - docker_image: slimdockerwest.azurecr.io/devito_azure_tti:v1.0 <- update in case container changed
+  - docker_image: slimdockerwest.azurecr.io/devito_azure_tti:v1.0 <- enter docker image
     environment_variables:
       DEVITO_ARCH: gcc
       OMP_NUM_THREADS: 16
