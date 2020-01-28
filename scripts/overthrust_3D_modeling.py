@@ -249,11 +249,11 @@ if rank == 0:
     info("Writing shot record of size (%s, %s) to segy file, maximum value is %s" % (data.shape[0], data.shape[1], np.max(data)))
     os.system("rm -f %srecloc%s%s.npy %scoordloc%s%s.npy" % (recloc, 0, shot_id, recloc, 0, shot_id))
     segy_write(data,
-               [src_coords[0, 0]],
-               [src_coords[0, -1]],
+               [src.coordinates.data[0, 0]],
+               [src.coordinates.data[0, -1]],
                coords[:, 0],
                coords[:, -1],
                2.0,  "%srec%s.segy" % (recloc, shot_id),
-               sourceY=[src_coords[0, 1]],
+               sourceY=[src.coordinates.data[0, 1]],
                groupY=coords[:, 1])
 
