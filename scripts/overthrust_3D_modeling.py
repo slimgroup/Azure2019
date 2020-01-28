@@ -144,33 +144,35 @@ t0 = time.time()
 
 # Time axis
 tstart = 0.
-tn = 5000.
+tn = 1000.
 dt = model.critical_dt
 f0 = 0.025
 time_axis = TimeAxis(start=tstart, step=dt, stop=tn)
 
 #########################################################################################
 
-# Read coordinates and source index
-file_src = geomloc + 'src_coordinates.h5'
-file_rec = geomloc + 'rec_coordinates.h5'
-xsrc, ysrc, zsrc = read_coordinates(file_src)
-xrec, yrec, zrec = read_coordinates(file_rec)
-xsrc = xsrc[shot_id]; ysrc = ysrc[shot_id]; zsrc = zsrc[shot_id]
-info('Source location: (%s, %s, %s)' % (xsrc, ysrc, zsrc))
+# Source and receiver geometries
+nrecx = 101
+nrecy = 401
+nrec= nrecx * nrecy
 
-# Set up receiver coordinates
-rec_coords = np.concatenate((xrec.reshape(-1,1), yrec.reshape(-1,1), zrec.reshape(-1,1)), axis=1)
-info('Number of receivers: %s ' % rec_coords.shape[0])
+src_coords = np.empty((1, len(spacing)))
+src_coords[0, :] = np.array(model.domain_size) * .5
+src_coords[0, -1] = 287.5
 
-# Set up source coordinates
-src_coordinates = np.array([xsrc, ysrc, zsrc])
+rec_coordinates = np.empty((nrecx, nrecy, 3))
+for i in range(nrecx):
+    for j in range(nrecy):
+        rec_coordinates[i, j, 0] = (i + 1) * spacing[0]
+        rec_coordinates[i, j, 1] = (j + 1) * spacing[1]
+        rec_coordinates[i, j, 2] = 6.0
+
+rec_coordinates = np.reshape(rec_coordinates, (nrec, 3))
+
+
 src = RickerSource(name='src', grid=model.grid, f0=f0, time_range=time_axis, npoint=1)
-src.coordinates.data[0, 0] = src_coordinates[0]
-src.coordinates.data[0, 1] = src_coordinates[1]
-src.coordinates.data[0, 2] = src_coordinates[2]
+src.coordinates.data[0, :] = src_coords[:]
 
-# Wavelet
 wavelet = np.concatenate((np.load("%swavelet.npy"%geomloc), np.zeros((100,))))
 twave = [i*1.2 for i in range(wavelet.shape[0])]
 tnew = [i*dt for i in range(int(1 + (twave[-1]-tstart) / dt))]
@@ -180,8 +182,10 @@ q_custom[:len(tnew), 0] = fq(tnew)
 q_custom[:, 0] = butter_bandpass_filter(q_custom[:, 0], .005, .030, 1/dt)
 q_custom[:, 0] = 1e1 * q_custom[:, 0] / np.max(q_custom[:, 0])
 src.data[:, 0] = q_custom[:, 0]
+
 timer(t0, 'Setup geometry')
 t0 = time.time()
+
 
 #########################################################################################
 
@@ -192,7 +196,7 @@ tti = TTIPropagators(model, space_order=space_order)
 
 # Data
 info("Starting forward modeling")
-d_obs, u, v = tti.forward(src, rec_coords, freesurface=freesurf, autotune=('aggressive', 'runtime'), time_M=10)
+d_obs, u, v = tti.forward(src, rec_coordinates, freesurface=freesurf, autotune=('aggressive', 'runtime'))
 timer(t0, 'Run forward')
 t0 = time.time()
 
@@ -234,10 +238,11 @@ if rank == 0:
     info("Writing shot record of size (%s, %s) to segy file, maximum value is %s" % (data.shape[0], data.shape[1], np.max(data)))
     os.system("rm -f %srecloc%s%s.npy %scoordloc%s%s.npy" % (recloc, 0, shot_id, recloc, 0, shot_id))
     segy_write(data,
-               [src.coordinates.data[0, 0]],
-               [src.coordinates.data[0, -1]],
+               [src_coords[0, 0]],
+               [src_coords[0, -1]],
                coords[:, 0],
                coords[:, -1],
                2.0,  "%srec%s.segy" % (recloc, shot_id),
-               sourceY=[src.coordinates.data[0, 1]],
+               sourceY=[src_coords[0, 1]],
                groupY=coords[:, 1])
+
