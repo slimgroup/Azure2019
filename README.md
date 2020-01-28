@@ -17,7 +17,7 @@ An event-driven workflow for severless seismic imaging on Azure.
 
 ## Azure Batch Setup
 
-Follow these steps to reproduce the RTM example:
+Follow these steps to reproduce the test example for forward modeling:
 
  1. Optional: (Re-)Build the docker images and upload them to the Azure Container registry or use pre-built public images (we will add public pre-built images to docker hub).
     
