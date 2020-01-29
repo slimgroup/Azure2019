@@ -147,7 +147,7 @@ src.coordinates.data[0, 2] = src_coordinates[2]
 tti = TTIPropagators(model, space_order=space_order)
 
 # Data and RTM
-d_obs, u0, v0, summary1 = tti.forward(src, rec_coords, autotune=('aggressive', 'runtime'))
+d_obs, u0, v0 = tti.forward(src, rec_coords, autotune=('aggressive', 'runtime'))
 
 # Save shot
 filename = rootpath + '/overthrust/data/overthrust_3D_data_source_' + str(idx)
