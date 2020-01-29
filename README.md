@@ -44,7 +44,7 @@ Follow these steps to reproduce the test example for forward modeling:
 
  2. Upload the model and acquisition geometry to Azure Blob Storage (we will add the model/geometry to an FTP server or a public blob so that it is available to everyone)
 
- 3. Upload the application script to Blob Storage (`~/Azure2019/scripts/overthrust_3D_modeling_split.py` for modeling and `~/Azure2019/scripts/overthrust_3D_limited_offset.py` for RTM)
+ 3. Upload the application script to Blob Storage (`~/Azure2019/scripts/overthrust_3D_modeling.py` for modeling and `~/Azure2019/scripts/overthrust_3D_limited_offset.py` for RTM)
 
  4. Modify the Batch Shipyard config files (`~/Azure2019/src/AzureBatch/shipyard/config_gcc`)
 
