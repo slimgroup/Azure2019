@@ -24,9 +24,4 @@ job_specifications:
         processes_per_node: 2
         options:
           - --bind-to socket
-    command: python3 $AZ_BATCH_NODE_SHARED_DIR/azuredevitoslim/scripts/overthrust_3D_modeling.py
-      --recloc $AZ_BATCH_NODE_SHARED_DIR/azuredevitoslim/shots/
-      --modelloc $AZ_BATCH_NODE_SHARED_DIR/azuredevitoslim/models/
-      --id 100
-      --geomloc $AZ_BATCH_NODE_SHARED_DIR/azuredevitoslim/geometry/
-      --fs
+    command: python3 $AZ_BATCH_NODE_SHARED_DIR/overthrust/scripts/overthrust_3D_modeling_split.py 100
