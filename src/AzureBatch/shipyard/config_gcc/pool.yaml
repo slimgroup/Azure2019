@@ -14,3 +14,11 @@ pool_specification:
   ssh:
     username: shipyard
     allow_docker_access: true
+  additional_node_prep:
+      commands:
+        pre:
+        - wget  -O - https://raw.githubusercontent.com/Azure/batch-insights/master/scripts/run-linux.sh | bash
+      environment_variables:
+        BATCH_INSIGHTS_DOWNLOAD_URL: https://github.com/Azure/batch-insights/releases/download/v1.0.0/batch-insights
+        APP_INSIGHTS_APP_ID: ad146a5d-5475-472c-9ed9-6bd4ce21e919
+        APP_INSIGHTS_INSTRUMENTATION_KEY: 3b9d2f91-7070-4ded-808b-14bf505415e5
