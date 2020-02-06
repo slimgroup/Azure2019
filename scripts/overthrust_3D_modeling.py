@@ -202,47 +202,65 @@ t0 = time.time()
 
 #######################################################################################
 
+#######################################################################################
 # Check output
+
 info("Nan values : %s" % np.any(np.isnan(d_obs.data[:])))
-info("Max values : %s" % np.any(np.max(d_obs.data[:])))
+info("Max value in rec : %s" % np.max(d_obs.data[:]))
+info("Max values in u, v : (%s, %s)" % (np.max(u.data[:]), np.max(v.data[:])))
 info("saving shot records %srecloc%s%s" % (recloc, rank, shot_id))
-data_loc, coord_loc = resample(d_obs, 126)
+
+# Resample
+data_loc, coord_loc = resample(d_obs, 5001)
+
+#Save local
 np.save("%srecloc%s%s.npy"% (recloc, rank, shot_id), data_loc)
 np.save("%scoordloc%s%s.npy"% (recloc, rank, shot_id), coord_loc)
-timer(t0, 'Saved data')
+
+
+timer(t0, 'Locally saved')
+t0 = time.time()
 
 #######################################################################################
-
 # Merge output
+
 if rank == 0:
     data = np.load("%srecloc0%s.npy" % (recloc, shot_id))
     coords = np.load("%scoordloc0%s.npy" % (recloc, shot_id))
+
     for i in range(1, size):
-        
         # Wait until all files are ready
         while True:
             try:
                 datai = np.load("%srecloc%s%s.npy" %  (recloc, i, shot_id))
                 coordsi = np.load("%scoordloc%s%s.npy" %  (recloc, i, shot_id))
-            except FileNotFoundError:
+                assert datai.shape[0]  == data.shape[0]
+                assert coordsi.shape[1] == coords.shape[1]
+            except:
                 info("File not ready")
-                time.sleep(20)
+                time.sleep(10)
                 info("Waited a bit trying again")
             else:
                 info("File for rank %s found" % i)
                 break
-        for j, c in enumerate(coordsi):
-            if c not in coords:
-                np.vstack((coords, c))
-                np.hstack((data, datai[:, j]))
+
+        coords = np.vstack((coords, coordsi))
+        data = np.hstack((data, datai))
         os.system("rm -f %srecloc%s%s.npy %scoordloc%s%s.npy" % (recloc, i, shot_id, recloc, i, shot_id))
+
+    # Remove duplicates
+    coords, inds = np.unique(coords, axis=0, return_index=True)
+    data = data[:, inds]
+    assert data.shape[1] == nrec
+
+    # Save full shot record in segy
+    info("%s, %s", data.shape, nrec)
     info("Writing shot record of size (%s, %s) to segy file, maximum value is %s" % (data.shape[0], data.shape[1], np.max(data)))
     os.system("rm -f %srecloc%s%s.npy %scoordloc%s%s.npy" % (recloc, 0, shot_id, recloc, 0, shot_id))
-    segy_write(data,
-               [src_coords[0, 0]],
-               [src_coords[0, -1]],
-               coords[:, 0],
-               coords[:, -1],
+    segy_write(data, [src_coords[0,0]], [src_coords[0,2]],
+               coords[:, 0], coords[:, -1],
                2.0,  "%srec%s.segy" % (recloc, shot_id),
-               sourceY=[src_coords[0, 1]],
-               groupY=coords[:, 1])
+               sourceY=[src_coords[0,1]], groupY=coords[:, 1])
+
+if rank == 0:
+    info("All done with saving")
