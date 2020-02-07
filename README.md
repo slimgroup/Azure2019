@@ -42,6 +42,8 @@ Follow these steps to reproduce the test example for forward modeling:
      docker push slimdockerwest.azurecr.io/devito_azure_tti:v1.0
      ```
 
+    (To push, you may have to first log in by typing `az acr login --name slimdockerwest` into the command line, using your own corresponding registry name)
+
  2. Upload the model and acquisition geometry to Azure Blob Storage (we will add the model/geometry to an FTP server or a public blob so that it is available to everyone)
 
  3. Upload the application script to Blob Storage (`~/Azure2019/scripts/overthrust_3D_modeling.py` for modeling and `~/Azure2019/scripts/overthrust_3D_limited_offset.py` for RTM)
