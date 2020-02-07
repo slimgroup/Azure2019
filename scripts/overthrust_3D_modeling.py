@@ -159,7 +159,7 @@ t0 = time.time()
 
 # Time axis
 tstart = 0.
-tn = 500.
+tn = 1000.
 dt = model.critical_dt
 f0 = 0.025
 time_axis = TimeAxis(start=tstart, step=dt, stop=tn)
@@ -212,7 +212,7 @@ info("Max values in u, v : (%s, %s)" % (np.max(u.data[:]), np.max(v.data[:])))
 info("saving shot records %srecloc%s%s" % (recloc, rank, shot_id))
 
 # Resample
-data_loc, coord_loc = resample(d_obs, 5001)
+data_loc, coord_loc = resample(d_obs, 501)
 
 #Save local
 np.save("%srecloc%s%s.npy"% (recloc, rank, shot_id), data_loc)
