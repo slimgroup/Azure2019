@@ -142,6 +142,7 @@ xsrc = xsrc_full[shot_id]; ysrc = ysrc_full[shot_id]; zsrc = zsrc_full[shot_id]
 # Set up coordinates as nrec x 3 numpy array
 rec_coordinates = np.concatenate((xrec_full.reshape(-1,1), yrec_full.reshape(-1,1), 
     zrec_full.reshape(-1,1)), axis=1)
+nrec = rec_coordinates.shape[0]
 
 #######################################################################################
 
@@ -166,9 +167,13 @@ time_axis = TimeAxis(start=tstart, step=dt, stop=tn)
 #########################################################################################
 
 # Source geometry
+src_coords = np.empty((1, len(spacing)))
+src_coords[0, 0] = xsrc
+src_coords[0, 1] = ysrc
+src_coords[0, 2] = zsrc
+
 src = RickerSource(name='src', grid=model.grid, f0=f0, time_range=time_axis, npoint=1)
-src.coordinates.data[0, :] = np.concatenate((xsrc.reshape(-1,1), ysrc.reshape(-1,1), 
-    zsrc.reshape(-1,1)), axis=1)[:]
+src.coordinates.data[0, :] = src_coords[:]
 
 wavelet = np.concatenate((np.load("%swavelet.npy"%geomloc), np.zeros((100,))))
 twave = [i*1.2 for i in range(wavelet.shape[0])]
