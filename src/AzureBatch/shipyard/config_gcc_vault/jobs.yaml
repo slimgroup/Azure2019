@@ -18,7 +18,7 @@ job_specifications:
       BATCHSIZE: 1
     default_working_dir: container
     multi_instance:
-      num_instances: pool_current_dedicated
+      num_instances: 2
       mpi:
         runtime: mpich
         processes_per_node: 2
