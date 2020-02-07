@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Store credentials.yaml in keyvault as mycreds
+# Store credentials.yaml in keyvault as mycredentials
 ./shipyard keyvault add mycredentials \
 --keyvault-uri <value> \
 --aad-directory-id <value> \
