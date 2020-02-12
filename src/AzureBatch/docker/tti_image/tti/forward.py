@@ -7,8 +7,6 @@ from sources import Receiver, TimeAxis
 from wave_utils import freesurface, subsampled
 
 def forward(model, save=False, space_order=12, sub=None, norec=False, fs=False):
-    clear_cache()
-
     # Parameters
     s = model.grid.stepping_dim.spacing
     nt = 10

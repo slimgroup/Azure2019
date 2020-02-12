@@ -16,23 +16,30 @@ job_specifications:
       BLOB_CONTAINER: 'azuredevitoslim'
       SPACE_ORDER: 8
       BATCHSIZE: 1
+      nsockets: 2
     default_working_dir: container
     multi_instance:
-      num_instances: 2
+      num_instances: pool_current_low_priority
+      pre_execution_command: source $HPCX_HOM/hpcx-mt-init; hpcx_load; source /opt/setup-omi.sh
       mpi:
         runtime: mpich
         processes_per_node: 2
         options:
-          - --bind-to socket
+        - --bind-to socket
+        - -np $np
+        - --hostfile $hostfile
+        - -x $mpienvopts -x $devitoenvopts -x $ompenvopts
+        - -x PYTHONPATH='/app/tti'
     task_factory:
       parametric_sweep:
         product:
         - start: 100
           step: 1
           stop: 102
-    command: python3 $AZ_BATCH_NODE_SHARED_DIR/overthrust/scripts/overthrust_3D_modeling.py
-      --recloc $AZ_BATCH_NODE_SHARED_DIR/overthrust/shots/
-      --modelloc $AZ_BATCH_NODE_SHARED_DIR/overthrust/models/
-      --id {}
-      --geomloc $AZ_BATCH_NODE_SHARED_DIR/overthrust/geometry/
-      --fs
+    command: >
+        python3 $AZ_BATCH_NODE_SHARED_DIR/overthrust/scripts/overthrust_3D_modeling.py
+        --recloc $AZ_BATCH_NODE_SHARED_DIR/overthrust/shots/
+        -modelloc $AZ_BATCH_NODE_SHARED_DIR/overthrust/models/
+        --id {}
+        --geomloc $AZ_BATCH_NODE_SHARED_DIR/overthrust/geometry/
+        --fs

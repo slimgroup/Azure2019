@@ -2,7 +2,7 @@ import numpy as np
 
 from sympy import sin, Abs
 from devito import (Grid, Inc, Operator, Function, SubDomain, Eq, SubDimension,
-                    ConditionalDimension, switchconfig)
+                    ConditionalDimension, switchconfig, Constant)
 from devito.tools import memoized_meth
 
 
@@ -142,7 +142,7 @@ class GenericModel(object):
                 if name is 'rho':
                     initialize_function(function, 1/field, self.nbpml)
                 else:
-                    initialize_function(function, field, self.nbpml)            
+                    initialize_function(function, field, self.nbpml)
         else:
             function = Constant(name=name, value=field)
         self._physical_parameters.append(name)

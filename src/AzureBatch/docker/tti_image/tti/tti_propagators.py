@@ -45,7 +45,8 @@ class TTIPropagators(object):
         if not norec:
             rec = Receiver(name='rec', grid=model.grid,
                            time_range=src.time_range,
-                           coordinates=rec_coordinates)
+                           coordinates=rec_coordinates,
+                           to_disk=kwargs.pop('to_disk', None))
             kwargs["rec"] = rec
         else:
             rec = 0
@@ -139,4 +140,3 @@ class TTIPropagators(object):
             return rec, usave or u, vsave or v, summary
         else:
             return rec, recu, summary
-
