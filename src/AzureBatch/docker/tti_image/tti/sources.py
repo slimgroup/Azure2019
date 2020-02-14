@@ -9,11 +9,11 @@ except:
     plt = None
 
 from devito.types import Dimension, SparseTimeFunction
-#from devito.types.basic import _SymbolCache
+from devito.tools import memoized_meth
+from devito.logger import info
 
 __all__ = ['PointSource', 'Receiver', 'Shot', 'WaveletSource',
            'RickerSource', 'GaborSource', 'DGaussSource', 'TimeAxis']
-
 
 class TimeAxis(object):
     """
@@ -116,6 +116,8 @@ class PointSource(SparseTimeFunction):
             newobj.__init_cached__(key)
             return newobj
 
+        to_disk = kwargs.get('to_disk', None)
+
         name = kwargs.pop('name')
         grid = kwargs.pop('grid')
         time_range = kwargs.pop('time_range')
@@ -138,7 +140,7 @@ class PointSource(SparseTimeFunction):
                                          coordinates=coordinates, **kwargs)
 
         obj._time_range = time_range._rebuild()
-
+        obj._to_disk = to_disk
         # If provided, copy initial data into the allocated buffer
         data = kwargs.get('data')
         if data is not None:
@@ -153,6 +155,23 @@ class PointSource(SparseTimeFunction):
     @property
     def time_range(self):
         return self._time_range
+
+    def _dist_gather(self, data, coords):
+        to_disk =  self._to_disk
+        if to_disk is None:
+            import time
+            t0 = time.time()
+            super(SparseTimeFunction, self)._dist_gather(data, coords)
+            info("%s with size (%s, %s) took %.3f sec to be post-processed" % (self.name, self.shape[0], self.shape[1], time.time() - t0))
+            return
+
+        try:
+            distributor = self.grid.distributor
+            rank = distributor.comm.Get_Rank()
+        except:
+            rank = 0
+        np.save("%srecloc%s%s.npy"% (to_disk['path'], rank, to_disk['id']), data)
+        np.save("%scoordloc%s%s.npy"% (to_disk['path'], rank, to_disk['id']), coords)
 
     def resample(self, dt=None, num=None, rtol=1e-5, order=3):
         # Only one of dt or num may be set.
