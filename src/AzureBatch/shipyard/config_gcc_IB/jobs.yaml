@@ -1,0 +1,45 @@
+job_specifications:
+- id: test-modeling-mpi-1
+  auto_complete: true
+  shared_data_volumes:
+    - azureblob_vol
+  tasks:
+  - docker_image: mloubout/devito-azure:vIBtti <- enter docker image here with IB drivers/mpi
+    environment_variables:
+      DEVITO_ARCH: gcc
+      OMP_NUM_THREADS: 22
+      DEVITO_MPI: 'basic'
+      DEVITO_OPENMP: 1
+      OMP_PROC_BIND: 'close'
+      OMP_PLACES: 'cores'
+      DEVITO_LOGGING: 'DEBUG'
+      BLOB_CONTAINER: 'azuredevitoslim'
+      SPACE_ORDER: 8
+      BATCHSIZE: 1
+      nsockets: 2
+    default_working_dir: container
+    multi_instance:
+      num_instances: pool_current_dedicated
+      pre_execution_command: source $HPCX_HOM/hpcx-mt-init; hpcx_load; source /opt/setup-omi.sh
+      mpi:
+        runtime: mpich
+        processes_per_node: 2
+        options:
+        - --map-by socket:NE=22 --report-bindings
+        - -np $np
+        - --hostfile $hostfile
+        - -x $mpienvopts -x $devitoenvopts -x $ompenvopts
+        - -x PYTHONPATH='/app/tti'
+    task_factory:
+      parametric_sweep:
+        product:
+        - start: 100
+          step: 1
+          stop: 102
+    command: >
+        python3 $AZ_BATCH_NODE_SHARED_DIR/overthrust/scripts/overthrust_3D_modeling.py
+        --recloc $AZ_BATCH_NODE_SHARED_DIR/overthrust/shots/
+        -modelloc $AZ_BATCH_NODE_SHARED_DIR/overthrust/models/
+        --id {}
+        --geomloc $AZ_BATCH_NODE_SHARED_DIR/overthrust/geometry/
+        --fs
