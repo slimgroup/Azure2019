@@ -1,0 +1,15 @@
+batch_shipyard:
+  storage_account_settings: my_storage_account_name
+global_resources:
+  docker_images:
+    - fwi01acr.azurecr.io/devito_azure_tti:v1.0
+  volumes:
+    shared_data_volumes:
+      azureblob_vol:
+        volume_driver: azureblob
+        storage_account_settings: my_storage_account_name
+        azure_blob_container_name: ghiordazdvgtchsacnt
+        container_path: $AZ_BATCH_NODE_SHARED_DIR/ghiordazdvgtchsacnt
+        bind_options: rw
+        mount_options:
+          - --file-cache-timeout-in-seconds=0

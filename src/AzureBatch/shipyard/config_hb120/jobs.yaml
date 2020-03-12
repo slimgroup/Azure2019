@@ -1,0 +1,39 @@
+job_specifications:
+- id: test-modeling-mpi-12
+  auto_complete: true
+  shared_data_volumes:
+    - azureblob_vol
+  tasks:
+  - docker_image: fwi01acr.azurecr.io/devito_azure_tti:v1.0
+    environment_variables:
+      DEVITO_ARCH: gcc
+      OMP_NUM_THREADS: 4
+      DEVITO_MPI: 'basic'
+      DEVITO_OPENMP: 1
+      OMP_PROC_BIND: 'close'
+      OMP_PLACES: 'cores'
+      DEVITO_LOGGING: 'DEBUG'
+      BLOB_CONTAINER: 'ghiordazdvgtchsacnt'
+      SPACE_ORDER: 8
+      BATCHSIZE: 1
+      HYDRA_TOPO_DEBUG: 1
+    default_working_dir: container
+    multi_instance:
+      num_instances: 1
+      mpi:
+        runtime: mpich
+        processes_per_node: 30
+        options:
+          - --bind-to core:4 
+    task_factory:
+      parametric_sweep:
+        product:
+        - start: 0
+          step: 1
+          stop: 99
+    command: python3 $AZ_BATCH_NODE_SHARED_DIR/ghiordazdvgtchsacnt/scripts/overthrust_3D_modeling.py
+      --recloc $AZ_BATCH_NODE_SHARED_DIR/ghiordazdvgtchsacnt/shots/
+      --modelloc $AZ_BATCH_NODE_SHARED_DIR/ghiordazdvgtchsacnt/models/
+      --id {}
+      --geomloc $AZ_BATCH_NODE_SHARED_DIR/ghiordazdvgtchsacnt/geometry/
+      --fs
