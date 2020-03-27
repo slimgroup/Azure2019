@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="generator" content="scholpandoc">
+  <meta name="viewport" content="width=device-width">
+  
+  <title>Scalable seismic modeling with Azure Batch</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.7.1/modernizr.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/respond.js/1.4.2/respond.js"></script>
+  <link rel="stylesheet" href="https://slimgroup.slim.gatech.edu/ScholMD/standalone/slimweb-scholmd-standalone-v0.1-latest.min.css">
+</head>
+<body>
+<div class="scholmd-container">
+<div class="scholmd-main">
+<div class="scholmd-content">
+<header>
+<h1 class="scholmd-title"><p class="pull-right"><a href="whitepaper.pdf"><img src="https://slimgroup.slim.gatech.edu/ScholMD/icons/PDF_file_96.png" alt="PDF Version" width=48px height=48px /></a><a href="whitepaper.md"><img src="https://slimgroup.slim.gatech.edu/ScholMD/icons/SchMD_file_96.png" alt="Markdown Version" width=48px height=48px /></a></p>Scalable seismic modeling with Azure Batch</h1>
+<div class="scholmd-author">
+<p>George Iordanescu<span class="math scholmd-math-inline">\(^1\)</span>, Wee Hyong Tok<span class="math scholmd-math-inline">\(^1\)</span>, Philipp A. Witte<span class="math scholmd-math-inline">\(^2\)</span>,<br />Mathias Louboutin<span class="math scholmd-math-inline">\(^2\)</span> and Felix J. Herrmann<span class="math scholmd-math-inline">\(^2\)</span><br /><span class="math scholmd-math-inline">\(^1\)</span> Microsoft Corporation<br /><span class="math scholmd-math-inline">\(^2\)</span> Georgia Institute of Technology, School of Computational Science and Engineering<br /></p>
+</div>
+</header>
+<h2 id="contents">Contents</h2>
+<ul>
+<li><p>Overview</p></li>
+<li><p>Seismic modeling with Devito</p></li>
+<li><p>Prerequisites</p></li>
+<li><p>Set up:</p>
+<ul>
+<li><p>Docker container</p></li>
+<li><p>Upload user files</p></li>
+<li><p>Batch Shipyard configuration</p></li>
+</ul></li>
+<li><p>Submit and monitor a job</p></li>
+<li><p>Review results</p></li>
+<li><p>Clean up</p></li>
+<li><p>Next steps</p></li>
+</ul>
+<h2 id="overview">Overview</h2>
+<p>Numerical seismic modeling lies at the core of many geoscience applications, such as subsurface imaging or CO2 monitoring, and involves modeling acoustic or elastic wave propagation in the subsurface. This physical process is modeled numerially by solving partial differential equations on large-scale two- and three-dimensional domains using finite-difference time-stepping. Typical seismic surveys, as used for resource exploration in the oil and gas industry, involve modeling seismic data for thousands of individual experiments. Solving wave equations for real-world problem sizes is computationally expensive, but as individual experiments are independent of each other, this process can be executed as an embarassingly parallel workload.</p>
+<p>This guide provides a walk through of how to deploy a parallel seismic modeling workload to Azure using <a href="https://azure.microsoft.com/en-us/services/batch/">Azure Batch</a> and <a href="https://github.com/Azure/batch-shipyard">Batch Shipyard</a>. For discretizing and solving the underlying wave equations the example uses <a href="https://www.devitoproject.org/">Devito</a>, a domain-specific language compiler for finite-differnce modeling. Devito allows implementing wave equations as high-level symbolic Python expressions and automatically generates and compiles optimized C code during runtime. The Python script provided in the accompanying software models seismic data for a given seismic source location and stores the modeled data in <a href="https://azure.microsoft.com/en-us/services/storage/blobs/">Blob storage</a>. To model seismic data for a large number of individual source experiments, the workload is deployed as a parallel job to a pool of workers using Batch Shipyard, a tool for provisioning and monitoring workloads with Azure Batch. Each task of the batch job corresponds to modeling seismic data for a given seismic source location and can be executed on a single compute node or on a cluster of multiple nodes using message passing (Figure 1).</p>
+<p>The following sections provide a brief overview of seismic modeling with Devito and step-by-step instructions how the bundle the software into a docker container and deploy it as a parallel workload to Azure. This process involves uploading the necessary user data, such as the seismic model and acquisition geometry, to Blob storage and setting up the batch environment. This guide then demonstrates how to submit and monitor your job and discusses some possible extensions and applications of this software.</p>
+<figure class="scholmd-float scholmd-figure" id="f1">
+<div class="scholmd-float-content"><figure class="scholmd-subfig" style="display: inline-block; width: 50%">
+<img src="figures/shipyard.png" />
+</figure></div>
+<div class="scholmd-float-caption"><figcaption><span class="scholmd-caption-head"><span class="scholmd-caption-head-prefix">Figure</span><span class="scholmd-caption-head-label">1</span></span><span class="scholmd-caption-text">Parallel batch job for modeling seismic data. Jobs are submitted to a pool using Batch Shipyard and individual tasks run on separate nodes, or as distributed workloads on small clusters. Each task is responsible for modeling the data of a given source location and stores the generated data in Blob storage upon completion.</span></figcaption></div>
+</figure>
+<h2 id="seismic-modeling-with-devito">Seismic modeling with Devito</h2>
+<p>Using devito.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li><p>Install Azure CLI, Batch Shipyard</p></li>
+<li><p>Optional: Batch Explorer</p></li>
+<li><p>(Or run everything from George’s docker container. Will it be made public?)</p></li>
+</ul>
+<h2 id="set-up">Set up</h2>
+<h3 id="docker-container">Docker container</h3>
+<ul>
+<li><p>Optional: Build Docker containers and upload to Dockerhub</p></li>
+<li><p>Alternatively: Use pre-built containers</p></li>
+</ul>
+<h3 id="upload-user-files">Upload user files</h3>
+<ul>
+<li><p>Upload model + geometry</p></li>
+<li><p>Upload Python script</p></li>
+</ul>
+<h3 id="batch-shipyard-configuration">Batch shipyard configuration</h3>
+<ul>
+<li>Fill out config files (<code>credentials.yaml</code>, <code>config.yaml</code>, <code>pool.yaml</code>, <code>jobs.yaml</code>)</li>
+</ul>
+<h2 id="submit-and-monitor-a-job">Submit and monitor a job</h2>
+<ul>
+<li><p>Start small pool: <code>./shipyard pool add -v</code> (then resize)</p></li>
+<li><p>Submit job: <code>./shipyard jobs add --tail stdout.txt -v</code></p></li>
+<li><p>Check <code>stderr.txt</code> for Devito output</p></li>
+<li><p>Connect to compute nodes and run <code>top</code></p></li>
+<li><p>Monitor CPU usage + memory in Batch Explorer</p></li>
+</ul>
+<h2 id="review-results">Review results</h2>
+<ul>
+<li>Download + plot data</li>
+</ul>
+<h2 id="clean-up">Clean up</h2>
+<ul>
+<li><p>Kill job: <code>./shipyard jobs del -v</code></p></li>
+<li><p>Shut down pool: <code>./shipyard pool del -v</code></p></li>
+</ul>
+<h2 id="next-steps">Next steps</h2>
+<p>Numerical seismic modeling functions as a key ingredient to a broad variety of applications, including subsurface imaging, parameter estimation or monitoring of geohazards. As such, the seismic modeling workflow demonstrated in this tutorial can function as building block for more sophisticated workflows that rely on forward modeling as the underlying workhorse. For example, instead of forward propagating a seismic source to model seismic data, recorded data from a seismic survey can be backpropagated in time by solving an adjoint wave equation, which results in a seismic image of the subsurface. An example of seismic imaging using a combination of Azure Batch and Azure Functions can be found <a href="https://arxiv.org/abs/1911.12447">here</a>. Furthermore, the forward modeling workflow from this tutorial can function as a building block for iterative workflows, such as full-waveform inversion or least-squares imaging.</p>
+<div class="references">
+
+</div>
+</div>
+</div>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+      processClass: "math"
+    },
+    TeX: {
+        TagSide: "left",
+        TagIndent: "1.2em",
+        equationNumbers: {
+            autoNumber: "AMS"
+        },
+        Macros: {
+            ensuremath: ["#1",1],
+            textsf: ["\\mathsf{\\text{#1}}",1],
+            texttt: ["\\mathtt{\\text{#1}}",1]
+        }
+    },
+    "HTML-CSS": { 
+        scale: 100,
+        availableFonts: ["TeX"], 
+        preferredFont: "TeX",
+        webFont: "TeX",
+        imageFont: "TeX",
+        EqnChunk: 1000
+    }
+});
+</script>
+<script src="https://slimgroup.slim.gatech.edu/ScholMD/js/slimweb-scholmd-scripts.js"></script>
+<script src="https://slimgroup.slim.gatech.edu/MathJax/MathJax.js?config=TeX-AMS_HTML-full" type="text/javascript"></script>
+</div>
+</body>
+</html>
