@@ -34,7 +34,7 @@ class TTIPropagators(object):
                     sub=sub, recu=recu, fs=fs, isic=isic)
 
 #########################################################################################
-    def forward(self, src, rec_coordinates, save=False, model=None, norec=False, **kwargs):
+    def forward(self, src, rec_coordinates, save=False, model=None, norec=False, summary=False, **kwargs):
 
         model = model or self.model
         kwargs.update(model.physical_params())
@@ -58,7 +58,7 @@ class TTIPropagators(object):
                                         t_sub=sub[0], space_sub=sub[1])
             u = TimeFunction(name='u', grid=model.grid, time_order=2, space_order=self.space_order)
             v = TimeFunction(name='v', grid=model.grid, time_order=2, space_order=self.space_order)
-            self.op_fwd(save=save, sub=sub, norec=norec, fs=fs).apply(u=u, v=v, us=usave,
+            summary = self.op_fwd(save=save, sub=sub, norec=norec, fs=fs).apply(u=u, v=v, us=usave,
                                                                       vs=vsave, **kwargs)
         else:
             usave = vsave = None
@@ -66,9 +66,12 @@ class TTIPropagators(object):
                              time_order=2, space_order=self.space_order)
             v = TimeFunction(name='v', grid=model.grid, save=nt if save else None,
                              time_order=2, space_order=self.space_order)
-            self.op_fwd(save=save, norec=norec, fs=fs).apply(u=u, v=v, **kwargs)
+            summary = self.op_fwd(save=save, norec=norec, fs=fs).apply(u=u, v=v, **kwargs)
 
-        return rec, usave or u, vsave or v
+        if summary == False:
+            return rec, usave or u, vsave or v
+        else:
+            return rec, usave or u, vsave or v, summary
 
 #########################################################################################
     def gradient(self, adj_src, u, v, save=False, model=None, grad=None,
