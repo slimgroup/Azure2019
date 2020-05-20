@@ -105,13 +105,27 @@ The model used in this tutorial is a 3D synthetic TTI model derived from the 3D 
 
 ### Batch shipyard configuration
 
-- Computational set up: `HBv2` nodes, 120 CPU cores, 480 GB memory. 
 
-- Use one full node per source location. Each modeling task has 30 MPI ranks with 4 OMP threads each (i.e. we use all 120 cores per node).
+1. Choosing the VM type: 
 
-- Pool size: 100 nodes.
+For running seismic modeling and imaging jobs with Azure Batch, the first step is the selection of the virtual machine (VM) type. This choice is determined by whether the defining factor of the job is a quick turn-around-time or keeping the cost low:
 
-- Job: Model xx of the 1,500 shots.
+ - **Cost**:  If cost is the defining factor for modeling the data set, it makes sense to choose the VM type based on the amount of memory that is required per task (i.e. for modeling data for a single source location), as memory is most defining cost factor. For the example in this tutorial, each wavefield per time step and each model (after padding) require approximately 1 GB of memory. For pseudo-acoustic modeling, we need to be able to store a total of six wavefields in memory at a time, as well as 6 versions of the model (velocity, density, two Thomsen parameters and two tilt angles). Therefore, modeling data for a single source location requires a VM with at least 12 GB of memory, plus ~20% of additional memory for the remaining parameters, such as source-receiver coordinates and seismic data. Forward modeling is generally a compute-intensive rather than a memory intensive workload, so preferable VM types include general purpose and compute-optimized VMs (D and F-series). Seismic imaging on the other hand is a memory-intensive workload, so appropriate VM types include the E, G and M-series.
+
+ - **Turn-around-time/performance**: If the defining factor of the job is not cost, but a quick turn-around time and performance, it makes sense to choose VM types with a larger number of cores, such that a higher level of parallelization can be achieved during forward modeling. This typically results in VMs with more memory than required to run the job and therefore results in a trade-off between cost and turn-around time. For jobs with a priority on a quick turn-around time, appropriate VM types include compute-optimized VMs (D and F-series), as well as HPC-optimized VMs (H-series). In the example in this tutorial, we are interested in performance and therefore choose the `HBv2` VM, which has 120 CPU cores and 480 GB of memory. 
+
+
+2. Choosing the number of MPI ranks and OpenMP: 
+
+Once a choice is made for a VM type, the next step is to select the number of MPI ranks for each task, as well as the number of OpenMP threads per MPI rank. As a rule of thumb, we want to assign one MPI rank per socket to avoid NUMA effects, and we want to make use of all available cores on the respective VM. In our example, we use a single `HBv2` node per task, which has 30 sockets with 4 cores each. Therefore, we set the number of MPI ranks per task to 30 and the number of OpenMP threads to 4, which results in a total of ``4 \times 30=120`` processes per VM (which is equal to the number of available cores on the `HBv2` node).
+
+
+3. Choosing a pool size
+
+The size of the parallel pool determines how many tasks can be executed in parallel. As there is no cost difference in running a pool with 100 nodes for 1 hour versus running a pool with 10 nodes for 10 hours, it makes sense to choose the pool size as large as possible in order to obtain the fastest turn-around time. If possible, set the pool size to the number of available tasks or otherwise select the largest pool size that is allowed by the Azure Batch quota.
+
+
+4. Filling out shipyard configuration files
 
 - How to fill out config files (`credentials.yaml`, `config.yaml`, `pool.yaml`, `jobs.yaml`)
 
