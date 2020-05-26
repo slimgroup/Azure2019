@@ -170,7 +170,7 @@ t0 = time.time()
 tstart = 0.
 tn = 1000.
 dt = model.critical_dt
-f0 = 0.025
+f0 = 0.020
 time_axis = TimeAxis(start=tstart, step=dt, stop=tn)
 
 ""
