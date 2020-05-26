@@ -1,9 +1,8 @@
 # Base imports
-import sys, os
+import sys, os, time
 sys.path.insert(0, '/app/tti')
 from argparse import ArgumentParser
 import numpy as np
-import time
 
 # Devito imports
 from devito.logger import info  
@@ -29,8 +28,21 @@ def timer(start, message):
     minutes, seconds = divmod(rem, 60)
     info('{}: {:d}:{:02d}:{:02d}'.format(message, int(hours), int(minutes), int(seconds)))
 
-#######################################################################################
-
+""
+# Process summary of performance info
+def process_summary(summary):
+    kernel_runtime = 0  # total runtime
+    gflopss = 0 # total no. of "FLOPS"
+    gpointss = 0  
+    oi = 0
+    for key in summary:
+        kernel_runtime += summary[key].time
+        gflopss += summary[key].gflopss
+        gpointss += summary[key].gpointss
+        oi += summary[key].oi
+    oi = oi / len(summary.keys())   # Average operational intensity
+    return [kernel_runtime, gflopss, gpointss, oi]
+""
 # Time resampling for shot records
 def resample(rec, num):
     start, stop = rec._time_range.start, rec._time_range.stop
@@ -46,8 +58,7 @@ def resample(rec, num):
     # Return new object
     return data, coords_loc
 
-#######################################################################################
-
+""
 # Segy writer for shot records
 def segy_write(data, sourceX, sourceZ, groupX, groupZ, dt, filename, sourceY=None,
                groupY=None, elevScalar=-1000, coordScalar=-1000):
@@ -84,8 +95,7 @@ def segy_write(data, sourceX, sourceZ, groupX, groupZ, dt, filename, sourceY=Non
             segyfile.trace[i] = data[:, i]
         segyfile.dt=int(dt*1e3)
 
-#######################################################################################
-
+""
 t0 = time.time()
 
 ####### Filter arguments
@@ -109,14 +119,14 @@ recloc = args.recloc
 modelloc = args.modelloc
 geomloc = args.geomloc
 freesurf = args.freesurf
+
 # Some parameters
 space_order = 12
 nbpml = 40
 timer(t0, 'Args process')
 t0 = time.time()
 
-#########################################################################################
-
+""
 # Read models
 rho = read_h5_model(modelloc + 'rho_with_salt.h5')
 epsilon = read_h5_model(modelloc + 'epsilon_with_salt.h5')
@@ -144,8 +154,7 @@ rec_coordinates = np.concatenate((xrec_full.reshape(-1,1), yrec_full.reshape(-1,
     zrec_full.reshape(-1,1)), axis=1)
 nrec = rec_coordinates.shape[0]
 
-#######################################################################################
-
+""
 # Get MPI info
 comm = model.grid.distributor.comm
 rank =  comm.Get_rank()
@@ -164,8 +173,7 @@ dt = model.critical_dt
 f0 = 0.025
 time_axis = TimeAxis(start=tstart, step=dt, stop=tn)
 
-#########################################################################################
-
+""
 # Source geometry
 src_coords = np.empty((1, len(spacing)))
 src_coords[0, 0] = xsrc
@@ -188,20 +196,20 @@ src.data[:, 0] = q_custom[:, 0]
 timer(t0, 'Setup geometry')
 t0 = time.time()
 
-#########################################################################################
-
+""
 # Propagator
 tti = TTIPropagators(model, space_order=space_order)
 
-#########################################################################################
-
+""
 # Data
 info("Starting forward modeling")
-d_obs, u, v = tti.forward(src, rec_coordinates, autotune=('aggressive', 'runtime'))
+tstart = time.time()
+d_obs, u, v, summary1 = tti.forward(src, rec_coordinates, autotune=('aggressive', 'runtime'))
+tend = time.time()
 timer(t0, 'Run forward')
 t0 = time.time()
 
-#######################################################################################
+""
 
 #######################################################################################
 # Check output
@@ -262,6 +270,12 @@ if rank == 0:
                coords[:, 0], coords[:, -1],
                2.0,  "%srec%s.segy" % (recloc, shot_id),
                sourceY=[src_coords[0,1]], groupY=coords[:, 1])
+
+    # Save performance info
+    summary = process_summary(summary1)
+    summary.insert(0, tend - tstart)
+    summary = np.array(summary)
+    summary.dump('summary_rec' + str(recloc) + '_shot_' + str(shot_id) + '.npy')
 
 if rank == 0:
     info("All done with saving")
