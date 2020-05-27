@@ -275,7 +275,6 @@ if rank == 0:
     summary = process_summary(summary1)
     summary.insert(0, tend - tstart)
     summary = np.array(summary)
-    summary.dump('summary_rec' + str(recloc) + '_shot_' + str(shot_id) + '.npy')
-
+    summary.dump("%ssummary%s.npy" % (recloc, shot_id)
 if rank == 0:
     info("All done with saving")
