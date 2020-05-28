@@ -132,6 +132,23 @@ with h5py.File('src_coordinates.h5', 'w') as data_file:
 with h5py.File('rec_coordinates.h5', 'w') as data_file:
     data_file.create_dataset('rec', data=src_coordinates)
 
-# Plot grids
-plt.figure(); plt.plot(rec_coordinates_dithered[:,0], rec_coordinates_dithered[:,1], 'o')
+
+#######################################################################################################################
+# Plots
+
+# Plot random OBN grid
+plt.figure(figsize=(6,5)); plt.plot(rec_coordinates_dithered[0:-1:2, 0]/1e3, 
+    rec_coordinates_dithered[0:-1:2,1]/1e3, 'o', markersize=5)
+plt.xlabel('Lateral position X [km]')
+plt.ylabel('Lateral position Y [km]')
+
+# Plot subsampled source grid to avoid aliasing
+xrange_src_plot = np.linspace(start=sx_min, stop=sx_max + dsx, num=35)
+yrange_src_plot = np.linspace(start=sy_min, stop=sy_max + dsy, num=35)
+Y_src, X_src = np.meshgrid(yrange_src_plot, xrange_src_plot)
+
+plt.figure(figsize=(6,5)); plt.plot(Y_src.reshape(-1,1)/1e3, X_src.reshape(-1,1)/1e3, 'go', markersize=5)
+plt.xlabel('Lateral position X [km]')
+plt.ylabel('Lateral position Y [km]')
+
 plt.show()
