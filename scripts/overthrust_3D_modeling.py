@@ -1,6 +1,6 @@
 # Base imports
 import sys, os, time
-sys.path.insert(0, '/app/tti')
+sys.path.insert(0, '/app/pysource')
 from argparse import ArgumentParser
 import numpy as np
 
@@ -8,9 +8,9 @@ import numpy as np
 from devito.logger import info  
 
 # tti imports from docker image
-from model import *
+from models import *
 from sources import *
-from tti_propagators import *
+from propagators import *
 
 # segy
 import segyio as so
@@ -164,14 +164,15 @@ timer(t0, 'Read segy models')
 t0 = time.time()
 
 #########################################################################################
-# Model a 2D shot
+# Model a 3D shot
 
 # Time axis
 tstart = 0.
 tn = 1000.
 dt = model.critical_dt
+nt = int(tn/dt_shot + 1)
 f0 = 0.020
-time_axis = TimeAxis(start=tstart, step=dt, stop=tn)
+time_axis = np.linspace(tstart, tn, nt) #TimeAxis(start=tstart, step=dt, stop=tn)
 
 ""
 # Source geometry
@@ -180,7 +181,7 @@ src_coords[0, 0] = xsrc
 src_coords[0, 1] = ysrc
 src_coords[0, 2] = zsrc
 
-src = RickerSource(name='src', grid=model.grid, f0=f0, time_range=time_axis, npoint=1)
+src = RickerSource(name='src', grid=model.grid, f0=f0, time=time_axis, npoint=1)
 src.coordinates.data[0, :] = src_coords[:]
 
 wavelet = np.concatenate((np.load("%swavelet.npy"%geomloc), np.zeros((100,))))
@@ -198,13 +199,13 @@ t0 = time.time()
 
 ""
 # Propagator
-tti = TTIPropagators(model, space_order=space_order)
+#tti = TTIPropagators(model, space_order=space_order)
 
 ""
 # Data
 info("Starting forward modeling")
 tstart = time.time()
-d_obs, u, v, summary1 = tti.forward(src, rec_coordinates, autotune=('aggressive', 'runtime'))
+d_obs, u, summary1 = forward(model, src.coordinates.data, rec_coordinates, src.data)
 tend = time.time()
 timer(t0, 'Run forward')
 t0 = time.time()
