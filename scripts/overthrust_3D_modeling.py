@@ -170,9 +170,9 @@ t0 = time.time()
 tstart = 0.
 tn = 1000.
 dt = model.critical_dt
-nt = int(tn/dt_shot + 1)
+nt = int(tn/dt + 1)
 f0 = 0.020
-time_axis = np.linspace(tstart, tn, nt) #TimeAxis(start=tstart, step=dt, stop=tn)
+time_axis = np.linspace(tstart, tn, nt)
 
 ""
 # Source geometry

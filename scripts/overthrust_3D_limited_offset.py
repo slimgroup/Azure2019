@@ -1,9 +1,9 @@
 import numpy as np
 import sys, os
-sys.path.insert(0, '/app/tti')
-from model import Model
+sys.path.insert(0, '/app/pysource')
+from models import Model
 from sources import RickerSource, TimeAxis, Receiver
-from tti_propagators import TTIPropagators
+from propagators import *
 import segyio as so
 from scipy import interpolate, ndimage
 from AzureUtilities import read_h5_model, write_h5_model, butter_bandpass_filter, butter_lowpass_filter, resample, process_summaries, read_coordinates, save_rec, restrict_model_to_receiver_grid, extent_gradient
@@ -123,9 +123,9 @@ rank = comm.Get_rank()
 t0 = 0.
 tn = 2000.
 dt_shot = 4.
-nt = int(tn/dt_shot + 1)
 dt = 0.64   #model.critical_dt*.8
-time = TimeAxis(start=t0, step=dt, stop=tn)
+nt = int(tn/dt_shot + 1)
+time = np.linspace(t0, tn, nt)
 
 #########################################################################################
 
@@ -135,7 +135,7 @@ print('Number of receivers: ', rec_coords.shape[0])
 
 # Source coordinates
 src_coordinates = np.array([xsrc, ysrc, zsrc])
-src = RickerSource(name='src', grid=model.grid, f0=0.02, time_range=time, npoint=1)
+src = RickerSource(name='src', grid=model.grid, f0=0.02, time=time, npoint=1)
 src.coordinates.data[0, 0] = src_coordinates[0]
 src.coordinates.data[0, 1] = src_coordinates[1]
 src.coordinates.data[0, 2] = src_coordinates[2]
@@ -143,12 +143,9 @@ src.coordinates.data[0, 2] = src_coordinates[2]
 
 #########################################################################################
 
-# Devito operator
-tti = TTIPropagators(model, space_order=space_order)
-
 # Data and RTM
-d_obs, u0, v0, summary1 = tti.born(src, rec_coords, save=True, sub=(12, 1), autotune=('aggressive', 'runtime'))
-grad, summary2 = tti.gradient(d_obs, u0, v0, sub=(12, 1), isic=True, autotune=('aggressive', 'runtime'))
+d_obs, u0, summary1 = born(model, src.coordinates.data, rec_coords, src.data, save=True, t_sub=(12, 1))
+grad, summary2 = gradient(model, d_obs, rec_coords, u0, isic=True)
 
 # Gather gradient
 if rank > 0:
