@@ -115,6 +115,22 @@ rec_coords[:, 1] = zrec
 
 #########################################################################################
 
+def resample(rec, num, time):
+    #start, stop = rec._time_range.start, rec._time_range.stop
+    #dt0 = rec._time_range.step
+    start = time[0]
+    stop = time[-1]
+    new_time_range = TimeAxis(start=start, stop=stop, num=num)
+    dt = new_time_range.step
+    to_interp = np.asarray(rec.data)
+    data = np.zeros((num, to_interp.shape[1]))
+    for i in range(to_interp.shape[1]):
+        tck = interpolate.splrep(time, to_interp[:, i], k=3)
+        data[:, i] = interpolate.splev(new_time_range.time_values, tck)
+    coords_loc = np.asarray(rec.coordinates.data)
+    # Return new object
+    return data, coords_loc
+
 # Devito operator
 d_obs, u0, summary1 = forward(model, src.coordinates.data, rec_coords, src.data, save=True, t_sub=12)
 grad, summary2 = gradient(model, d_obs, rec_coords, u0, isic=True)

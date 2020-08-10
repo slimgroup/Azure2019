@@ -12,6 +12,7 @@ RUN git clone --single-branch --branch examples https://github.com/slimgroup/JUD
     && rm -rf /app/JUDI.jl
 
 ADD ./AzureUtilities.py /app/pysource/.
+ADD ./utils.py /app/pysource/.
 
 # set up sshd on port 23
 EXPOSE 23
