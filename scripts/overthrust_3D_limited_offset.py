@@ -46,6 +46,15 @@ def check_thomsen_parameters(model):
     if num_err > 0:
         print('Warning: delta > epsilon')
 
+def Ricker(f0, t):
+    """
+    Defines a Ricker wavelet with a peak frequency f0 at time t.
+    f0: Peak frequency in kHz
+    t: Discretized values of time in ms
+    """
+    r = (np.pi * f0 * (t - 1./f0))
+    return (1-2.*r**2)*np.exp(-r**2)
+
 ##########################################################################################
 
 # Get runtime arguments and environment variables
@@ -120,12 +129,12 @@ rank = comm.Get_rank()
 #########################################################################################
 
 # Time axis
-t0 = 0.
-tn = 2000.
-dt_shot = 4.
-dt = 0.64   #model.critical_dt*.8
-nt = int(tn/dt_shot + 1)
-time = np.linspace(t0, tn, nt)
+tstart = 0.
+tn = 1000.
+dt = model.critical_dt
+nt = int(tn/dt + 1)
+f0 = 0.020
+time_axis = np.linspace(tstart, tn, nt)
 
 #########################################################################################
 
@@ -133,18 +142,14 @@ time = np.linspace(t0, tn, nt)
 rec_coords = np.concatenate((xrec.reshape(-1,1), yrec.reshape(-1,1), zrec.reshape(-1,1)), axis=1)
 print('Number of receivers: ', rec_coords.shape[0])
 
-# Source coordinates
+# Source coordinates and wavelet
 src_coordinates = np.array([xsrc, ysrc, zsrc])
-src = RickerSource(name='src', grid=model.grid, f0=0.02, time=time, npoint=1)
-src.coordinates.data[0, 0] = src_coordinates[0]
-src.coordinates.data[0, 1] = src_coordinates[1]
-src.coordinates.data[0, 2] = src_coordinates[2]
-
+wavelet =  Ricker(0.02, time_axis)
 
 #########################################################################################
 
 # Data and RTM
-d_obs, u0, summary1 = born(model, src.coordinates.data, rec_coords, src.data, save=True, t_sub=(12, 1))
+d_obs, u0, summary1 = born(model, src_coordinates, rec_coords, wavelet, save=True, t_sub=(12, 1))
 grad, summary2 = gradient(model, d_obs, rec_coords, u0, isic=True)
 
 # Gather gradient
