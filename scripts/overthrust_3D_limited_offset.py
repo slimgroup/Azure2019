@@ -148,8 +148,10 @@ wavelet =  Ricker(0.02, time_axis)
 
 #########################################################################################
 
-# Data and RTM
-d_obs, u0, summary1 = born(model, src_coordinates, rec_coords, wavelet, save=True, t_sub=(12, 1))
+# Linearied born modeling
+d_obs, u0, summary1 = born(model, src_coordinates, rec_coords, wavelet, save=True, t_sub=12)
+
+# Compute RTM image
 grad, summary2 = gradient(model, d_obs, rec_coords, u0, isic=True)
 
 # Gather gradient
@@ -170,7 +172,7 @@ else:   # Master
         rtm[local_indices] = glocal
 
     # Remove pml and extent back to full size
-    rtm = rtm[model.nbpml:-model.nbpml, model.nbpml:-model.nbpml, model.nbpml:-model.nbpml]  # remove padding
+    rtm = rtm[model.nbl:-model.nbl, model.nbl:-model.nbl, model.nbl:-model.nbl]  # remove padding
     rtm = extent_gradient(shape_full, origin_full, shape, origin, spacing, rtm)
 
     # Save to bucket
@@ -181,6 +183,6 @@ else:   # Master
     timings = np.array([kernel, gflopss, gpointss, oi, ops])
     timings.dump(rootpath + '/azuredevitoslim/timings/timings_rtm_3D_shot_' + str(idx) + '.npy')
 
-# Save shot
-filename = rootpath + '/azuredevitoslim/shots/overthrust_3D_born_data_source_' + str(idx)
-save_rec(d_obs, src_coordinates, filename, nt)
+# # Save shot
+# filename = rootpath + '/azuredevitoslim/shots/overthrust_3D_born_data_source_' + str(idx)
+# save_rec(d_obs, src_coordinates, filename, nt)
