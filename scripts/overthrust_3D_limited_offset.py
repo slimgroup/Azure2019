@@ -74,18 +74,18 @@ batchsize = int(os.environ["BATCHSIZE"])
 #########################################################################################
 
 # Read models
-rho = read_h5_model(rootpath + '/overthrust/models/rho_with_salt.h5')
-epsilon = read_h5_model(rootpath + '/overthrust/models/epsilon_with_salt.h5')
-delta = read_h5_model(rootpath + '/overthrust/models/delta_with_salt.h5')
-theta = read_h5_model(rootpath + '/overthrust/models/theta_with_salt.h5')
-phi = read_h5_model(rootpath + '/overthrust/models/phi_with_salt.h5')
-m0 = read_h5_model(rootpath + '/overthrust/models/migration_velocity.h5')
-dm = read_h5_model(rootpath + '/overthrust/models/perturbation.h5')
+rho = read_h5_model(rootpath + '/azuredevitoslim/models/rho_with_salt.h5')
+epsilon = read_h5_model(rootpath + '/azuredevitoslim/models/epsilon_with_salt.h5')
+delta = read_h5_model(rootpath + '/azuredevitoslim/models/delta_with_salt.h5')
+theta = read_h5_model(rootpath + '/azuredevitoslim/models/theta_with_salt.h5')
+phi = read_h5_model(rootpath + '/azuredevitoslim/models/phi_with_salt.h5')
+m0 = read_h5_model(rootpath + '/azuredevitoslim/models/migration_velocity.h5')
+dm = read_h5_model(rootpath + '/azuredevitoslim/models/perturbation.h5')
 dm[:, :, 0:29] = 0.0    # Extend water column
 delta[delta >= epsilon] = .9 * epsilon[delta >= epsilon]    # fix thomsen parameters
 
 # Read geometry
-source_indices = np.load(rootpath + '/overthrust/geometry/source_indices.npy', allow_pickle=True)
+source_indices = np.load(rootpath + '/azuredevitoslim/geometry/source_indices.npy', allow_pickle=True)
 idx = source_indices[run_id]
 print('Process source no. ', idx, ' out of ', batchsize)
 
@@ -94,8 +94,8 @@ origin_full = (0.0, 0.0, 0.0)
 spacing = (12.5, 12.5, 12.5)
 
 # Read coordinates and source index
-file_src = rootpath + '/overthrust/geometry/src_coordinates.h5'
-file_rec = rootpath + '/overthrust/geometry/rec_coordinates.h5'
+file_src = rootpath + '/azuredevitoslim/geometry/src_coordinates.h5'
+file_rec = rootpath + '/azuredevitoslim/geometry/rec_coordinates.h5'
 xsrc, ysrc, zsrc = read_coordinates(file_src)
 xrec, yrec, zrec = read_coordinates(file_rec)
 xsrc = xsrc[idx]; ysrc = ysrc[idx]; zsrc = zsrc[idx]
@@ -118,7 +118,7 @@ dm = restrict_model_to_receiver_grid(xsrc, xrec, dm, spacing, origin_full, buffe
 print('New shape: ', shape, ' and origin ', origin)
 
 model = Model(shape=shape, origin=origin, spacing=spacing, vp=np.sqrt(1/m0), space_order=space_order,
-              epsilon=epsilon, delta=delta, theta=theta, phi=phi, rho=rho, nbpml=40, dm=dm, dt=0.64)
+    epsilon=epsilon, delta=delta, theta=theta, phi=phi, rho=rho, nbpml=40, dm=dm)
 
 check_thomsen_parameters(model)
 
@@ -131,7 +131,7 @@ rank = comm.Get_rank()
 # Time axis
 tstart = 0.
 tn = 1000.
-dt = model.critical_dt
+dt = 0.65# model.critical_dt
 nt = int(tn/dt + 1)
 f0 = 0.020
 time_axis = np.linspace(tstart, tn, nt)
@@ -174,13 +174,13 @@ else:   # Master
     rtm = extent_gradient(shape_full, origin_full, shape, origin, spacing, rtm)
 
     # Save to bucket
-    write_h5_model(rootpath + '/overthrust/rtm/overthrust_3D_rtm_shot_' + str(idx) + '.h5', 'rtm', rtm)
+    write_h5_model(rootpath + '/azuredevitoslim/rtm/overthrust_3D_rtm_shot_' + str(idx) + '.h5', 'rtm', rtm)
 
     # Process devito summaries and save in blob storage
     kernel, gflopss, gpointss, oi, ops = process_summaries([summary1, summary2])
     timings = np.array([kernel, gflopss, gpointss, oi, ops])
-    timings.dump(rootpath + '/overthrust/timings/timings_rtm_3D_shot_' + str(idx) + '.npy')
+    timings.dump(rootpath + '/azuredevitoslim/timings/timings_rtm_3D_shot_' + str(idx) + '.npy')
 
 # Save shot
-filename = rootpath + '/overthrust/data/overthrust_3D_born_data_source_' + str(idx)
+filename = rootpath + '/azuredevitoslim/shots/overthrust_3D_born_data_source_' + str(idx)
 save_rec(d_obs, src_coordinates, filename, nt)
