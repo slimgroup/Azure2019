@@ -130,8 +130,8 @@ rank = comm.Get_rank()
 
 # Time axis
 tstart = 0.
-tn = 1000.
-dt = 0.65# model.critical_dt
+tn = 2400.
+dt = model.critical_dt
 nt = int(tn/dt + 1)
 f0 = 0.020
 time_axis = np.linspace(tstart, tn, nt)
@@ -182,7 +182,3 @@ else:   # Master
     kernel, gflopss, gpointss, oi, ops = process_summaries([summary1, summary2])
     timings = np.array([kernel, gflopss, gpointss, oi, ops])
     timings.dump(rootpath + '/azuredevitoslim/timings/timings_rtm_3D_shot_' + str(idx) + '.npy')
-
-# # Save shot
-# filename = rootpath + '/azuredevitoslim/shots/overthrust_3D_born_data_source_' + str(idx)
-# save_rec(d_obs, src_coordinates, filename, nt)
