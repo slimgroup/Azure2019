@@ -1,7 +1,7 @@
 FROM devito_azure_base:v1.0
 
 # Install storage queue
-RUN pip3 install azure-storage-blob h5py segyio boto3
+RUN pip3 install azure-storage-blob==2.1.0 h5py segyio boto3
 RUN pip3 install azure-storage
 
 # Current sympy bug -> force version 1.5

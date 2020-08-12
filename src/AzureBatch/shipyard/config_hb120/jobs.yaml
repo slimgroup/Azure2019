@@ -9,7 +9,7 @@ job_specifications:
       DEVITO_ARCH: gcc
       OMP_NUM_THREADS: 4
       DEVITO_MPI: 'basic'
-      DEVITO_OPENMP: 1
+      DEVITO_LANGUAGE: 'openmp'
       OMP_PROC_BIND: 'close'
       OMP_PLACES: 'cores'
       DEVITO_LOGGING: 'DEBUG'
