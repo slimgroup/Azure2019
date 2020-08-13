@@ -1,6 +1,6 @@
 # Base imports
 import sys, os, time
-sys.path.insert(0, '/app/tti')
+sys.path.insert(0, '/app/pysource')
 from argparse import ArgumentParser
 import numpy as np
 
@@ -8,9 +8,9 @@ import numpy as np
 from devito.logger import info  
 
 # tti imports from docker image
-from model import *
+from models import *
 from sources import *
-from tti_propagators import *
+from propagators import *
 
 # segy
 import segyio as so
@@ -44,20 +44,18 @@ def process_summary(summary):
     return [kernel_runtime, gflopss, gpointss, oi]
 ""
 # Time resampling for shot records
-def resample(rec, num):
-    start, stop = rec._time_range.start, rec._time_range.stop
-    dt0 = rec._time_range.step
+def resample(rec, num, time):
+    start = time[0]
+    stop = time[-1]
     new_time_range = TimeAxis(start=start, stop=stop, num=num)
     dt = new_time_range.step
     to_interp = np.asarray(rec.data)
     data = np.zeros((num, to_interp.shape[1]))
     for i in range(to_interp.shape[1]):
-        tck = interpolate.splrep(rec._time_range.time_values, to_interp[:, i], k=3)
+        tck = interpolate.splrep(time, to_interp[:, i], k=3)
         data[:, i] = interpolate.splev(new_time_range.time_values, tck)
     coords_loc = np.asarray(rec.coordinates.data)
-    # Return new object
     return data, coords_loc
-
 ""
 # Segy writer for shot records
 def segy_write(data, sourceX, sourceZ, groupX, groupZ, dt, filename, sourceY=None,
@@ -164,14 +162,15 @@ timer(t0, 'Read segy models')
 t0 = time.time()
 
 #########################################################################################
-# Model a 2D shot
+# Model a 3D shot
 
 # Time axis
 tstart = 0.
 tn = 1000.
 dt = model.critical_dt
+nt = int(tn/dt + 1)
 f0 = 0.020
-time_axis = TimeAxis(start=tstart, step=dt, stop=tn)
+time_axis = np.linspace(tstart, tn, nt)
 
 ""
 # Source geometry
@@ -180,31 +179,26 @@ src_coords[0, 0] = xsrc
 src_coords[0, 1] = ysrc
 src_coords[0, 2] = zsrc
 
-src = RickerSource(name='src', grid=model.grid, f0=f0, time_range=time_axis, npoint=1)
-src.coordinates.data[0, :] = src_coords[:]
-
+# Build source wavelet
 wavelet = np.concatenate((np.load("%swavelet.npy"%geomloc), np.zeros((100,))))
 twave = [i*1.2 for i in range(wavelet.shape[0])]
 tnew = [i*dt for i in range(int(1 + (twave[-1]-tstart) / dt))]
 fq = interpolate.interp1d(twave, wavelet, kind='linear')
-q_custom = np.zeros((time_axis.num, 1))
+q_custom = np.zeros((len(time_axis), 1))
 q_custom[:len(tnew), 0] = fq(tnew)
 q_custom[:, 0] = butter_bandpass_filter(q_custom[:, 0], .005, .030, 1/dt)
 q_custom[:, 0] = 1e1 * q_custom[:, 0] / np.max(q_custom[:, 0])
-src.data[:, 0] = q_custom[:, 0]
 
 timer(t0, 'Setup geometry')
 t0 = time.time()
 
 ""
-# Propagator
-tti = TTIPropagators(model, space_order=space_order)
 
 ""
-# Data
+# Model data
 info("Starting forward modeling")
 tstart = time.time()
-d_obs, u, v, summary1 = tti.forward(src, rec_coordinates, autotune=('aggressive', 'runtime'))
+d_obs, u, summary1 = forward(model, src_coords, rec_coordinates, q_custom[:, 0])
 tend = time.time()
 timer(t0, 'Run forward')
 t0 = time.time()
@@ -216,11 +210,11 @@ t0 = time.time()
 
 info("Nan values : %s" % np.any(np.isnan(d_obs.data[:])))
 info("Max value in rec : %s" % np.max(d_obs.data[:]))
-info("Max values in u, v : (%s, %s)" % (np.max(u.data[:]), np.max(v.data[:])))
+info("Max values in u, v : (%s, %s)" % (np.max(u[0].data[:]), np.max(u[1].data[:])))
 info("saving shot records %srecloc%s%s" % (recloc, rank, shot_id))
 
 # Resample
-data_loc, coord_loc = resample(d_obs, 501)
+data_loc, coord_loc = resample(d_obs, 501, time_axis)
 
 #Save local
 np.save("%srecloc%s%s.npy"% (recloc, rank, shot_id), data_loc)
@@ -275,6 +269,8 @@ if rank == 0:
     summary = process_summary(summary1)
     summary.insert(0, tend - tstart)
     summary = np.array(summary)
-    summary.dump("%ssummary%s.npy" % (recloc, shot_id)
+    summary.dump("%ssummary%s.npy" % (recloc, shot_id))
+
+# Print if done
 if rank == 0:
     info("All done with saving")

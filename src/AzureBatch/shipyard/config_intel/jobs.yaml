@@ -9,7 +9,7 @@ job_specifications:
       OMP_NUM_THREADS: 16
       KMP_AFFINITY: verbose,scatter,granularity=fine
       DEVITO_MPI: 1
-      DEVITO_OPENMP: 1
+      DEVITO_LANGUAGE: 'openmp'
       DEVITO_LOGGING: 'DEBUG'
       BLOB_CONTAINER: 'overthrust'
       SPACE_ORDER: 8

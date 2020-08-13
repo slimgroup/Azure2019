@@ -24,7 +24,7 @@ RUN apt-get install -y htop vim git-core
 # Devito
 RUN apt-get install -y python3 python3-pip
 RUN pip3 install --upgrade pip
-RUN git clone https://github.com/devitocodes/devito.git && cd devito && git checkout c1c8caf && pip install ./
+RUN pip3 install --upgrade devito
 RUN pip3 install mpi4py matplotlib
 
 # clean
